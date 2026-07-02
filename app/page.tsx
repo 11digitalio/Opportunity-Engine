@@ -15,6 +15,8 @@ type OpportunityRow = {
   confidence_score: number;
   status: string;
   evidence_count: number;
+  evidence_source_count: number;
+  average_evidence_quality: number | null;
   interview_count: number;
   validation_count: number;
   concept_count: number;
@@ -47,6 +49,10 @@ export default function Dashboard() {
     SELECT o.id, o.industry_id, o.research_session_id, o.opportunity_name, o.problem_statement, o.promotion_reason, i.name industry_name,
       o.opportunity_score, o.confidence_score, o.status,
       (SELECT COUNT(*) FROM evidence_opportunities eo WHERE eo.opportunity_id = o.id) evidence_count,
+      (SELECT COUNT(DISTINCT e.source_type) FROM evidence e
+        JOIN evidence_opportunities eo ON eo.evidence_id = e.id WHERE eo.opportunity_id = o.id) evidence_source_count,
+      (SELECT ROUND(AVG(e.evidence_quality_score), 1) FROM evidence e
+        JOIN evidence_opportunities eo ON eo.evidence_id = e.id WHERE eo.opportunity_id = o.id) average_evidence_quality,
       (SELECT COUNT(*) FROM interviews iv WHERE iv.opportunity_id = o.id) interview_count,
       (SELECT COUNT(*) FROM validation_packages vp WHERE vp.opportunity_id = o.id) validation_count,
       (SELECT COUNT(*) FROM product_concepts pc WHERE pc.opportunity_id = o.id) concept_count,
@@ -140,7 +146,7 @@ export default function Dashboard() {
           <span className="eyebrow">Strongest opportunity</span>
           <h2>{strongest.opportunity_name}</h2>
           <p>{strongest.industry_name}</p>
-          <p className="opportunity-spotlight-reason"><strong>Why it leads:</strong> {short(strongest.promotion_reason || strongest.problem_statement, 150)}</p>
+          <p className="opportunity-spotlight-reason"><strong>Why it leads:</strong> {strongestOpportunityReason(strongest)}</p>
           <div className="opportunity-spotlight-meta">
             <StatusBadge status={strongest.status} />
             <span>{strongest.confidence_score}/10 confidence</span>
@@ -188,6 +194,19 @@ function ActivityCard({ title, href, children }: { title: string; href: string; 
 
 function short(value: string, length = 78) {
   return value.length > length ? `${value.slice(0, length)}…` : value;
+}
+
+function strongestOpportunityReason(opportunity: OpportunityRow) {
+  if (opportunity.interview_count >= 3 && opportunity.evidence_count >= 3) {
+    return "Customer interviews and independent evidence consistently confirm the same painful workflow.";
+  }
+  if (opportunity.evidence_source_count >= 3) {
+    return "Multiple independent customer signals point to a painful, repetitive workflow.";
+  }
+  if ((opportunity.average_evidence_quality ?? 0) >= 7) {
+    return "High-quality customer evidence consistently points to a problem worth validating.";
+  }
+  return "Recurring customer evidence makes this the clearest problem to validate next.";
 }
 
 function formatDate(value: string) {

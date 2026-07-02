@@ -17,7 +17,7 @@ export default async function IndustryDetailPage({ params }: { params: Promise<{
     ["Estimated market size", industry.estimated_market_size],
     ["Number of businesses", industry.number_of_businesses],
     ["Existing software vendors", industry.existing_software_vendors],
-    ["Research notes / AI output", industry.research_notes],
+    ["Research analysis", industry.research_notes],
     ["Notes", industry.notes],
   ];
 
@@ -25,7 +25,7 @@ export default async function IndustryDetailPage({ params }: { params: Promise<{
     <>
       <div className="issue-breadcrumb"><Link href="/industry-pipeline">Industry Pipeline</Link> / Industry record</div>
       <header className="page-header">
-        <div><h1>{industry.name}</h1><p className="subtitle">Full industry record</p></div>
+        <div><h1>{industry.name}</h1><p className="subtitle">Assess the market, workflows, evidence, and opportunities in one place.</p></div>
         <Link className="button secondary" href="/industries">All Industries</Link>
       </header>
       <div className="card detail-body">

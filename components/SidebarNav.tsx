@@ -7,27 +7,52 @@ const groups = [
   {
     label: "Core workflow",
     emphasis: "primary",
-    links: [
-      ["Dashboard", "/"],
-      ["Industries", "/industries"],
-      ["Opportunities", "/opportunities"],
-      ["Validation", "/validation-packages"],
-      ["Product Concepts", "/product-concepts"],
+    sections: [
+      {
+        label: undefined,
+        links: [
+          ["Dashboard", "/"],
+          ["Industries", "/industries"],
+          ["Opportunities", "/opportunities"],
+          ["Validation", "/validation-packages"],
+          ["Product Concepts", "/product-concepts"],
+        ],
+      },
     ],
   },
   {
     label: "Research tools",
     emphasis: "secondary",
-    links: [
-      ["Research Sessions", "/research-sessions"],
-      ["Industry Pipeline", "/industry-pipeline"],
-      ["Workflows", "/workflows"],
-      ["Software Products", "/products"],
-      ["Evidence", "/evidence"],
-      ["Evidence Patterns", "/evidence-clusters"],
-      ["Pain Points", "/pain-points"],
-      ["Interviews", "/interviews"],
-      ["Experiments", "/experiments"],
+    sections: [
+      {
+        label: "Research management",
+        links: [
+          ["Research Sessions", "/research-sessions"],
+          ["Industry Pipeline", "/industry-pipeline"],
+        ],
+      },
+      {
+        label: "Market map",
+        links: [
+          ["Workflows", "/workflows"],
+          ["Software Products", "/products"],
+        ],
+      },
+      {
+        label: "Research process",
+        links: [
+          ["Evidence", "/evidence"],
+          ["Evidence Patterns", "/evidence-clusters"],
+          ["Pain Points", "/pain-points"],
+        ],
+      },
+      {
+        label: "Validation records",
+        links: [
+          ["Interviews", "/interviews"],
+          ["Experiments", "/experiments"],
+        ],
+      },
     ],
   },
 ];
@@ -40,10 +65,15 @@ export default function SidebarNav() {
       {groups.map((group) => (
         <div className={`nav-group nav-${group.emphasis}`} key={group.label}>
           <span className="nav-label">{group.label}</span>
-          {group.links.map(([label, href]) => {
-            const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
-            return <Link className={active ? "active" : ""} aria-current={active ? "page" : undefined} key={href} href={href}>{label}</Link>;
-          })}
+          {group.sections.map((section, index) => (
+            <div className="nav-subgroup" key={section.label ?? index}>
+              {section.label && <span className="nav-subgroup-label">{section.label}</span>}
+              {section.links.map(([label, href]) => {
+                const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+                return <Link className={active ? "active" : ""} aria-current={active ? "page" : undefined} key={href} href={href}>{label}</Link>;
+              })}
+            </div>
+          ))}
         </div>
       ))}
     </nav>

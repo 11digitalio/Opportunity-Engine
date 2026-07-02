@@ -47,6 +47,11 @@ function addColumn(table: string, definition: string) {
 }
 
 function initializeDatabase() {
+  const schemaVersion = tableExists("app_meta")
+    ? Number((db.prepare("SELECT value FROM app_meta WHERE key = 'schema_version'").get() as { value: string } | undefined)?.value ?? 0)
+    : 0;
+  if (schemaVersion >= 3) return;
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS app_meta (
       key TEXT PRIMARY KEY, value TEXT NOT NULL
@@ -293,7 +298,15 @@ function initializeDatabase() {
       WHEN lower(source_type) LIKE '%support%' OR lower(source_type) LIKE '%internal%' THEN 9
       WHEN lower(source_type) = 'interview' OR lower(source_type) LIKE '%staff%' OR lower(source_type) LIKE '%user%' THEN 9
       ELSE evidence_quality_score END
-      WHERE evidence_quality_score = 5;
+      WHERE evidence_quality_score <> CASE
+        WHEN lower(source_type) = 'g2' THEN 7
+        WHEN lower(source_type) IN ('capterra', 'app store', 'google play') THEN 6
+        WHEN lower(source_type) IN ('reddit', 'forum', 'comment') THEN 5
+        WHEN lower(source_type) LIKE '%owner%' OR lower(source_type) LIKE '%buyer%' THEN 10
+        WHEN lower(source_type) LIKE '%revenue%' OR lower(source_type) LIKE '%payment%' THEN 10
+        WHEN lower(source_type) LIKE '%support%' OR lower(source_type) LIKE '%internal%' THEN 9
+        WHEN lower(source_type) = 'interview' OR lower(source_type) LIKE '%staff%' OR lower(source_type) LIKE '%user%' THEN 9
+        ELSE evidence_quality_score END;
   `);
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS opportunities_evidence_cluster_id_unique ON opportunities(evidence_cluster_id) WHERE evidence_cluster_id IS NOT NULL");
 
@@ -301,6 +314,10 @@ function initializeDatabase() {
   seedDatabase();
   seedIndustryPipeline();
   backfillResearchSessions();
+  db.prepare(`
+    INSERT INTO app_meta (key, value) VALUES ('schema_version', '3')
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+  `).run();
 }
 
 function backfillResearchSessions() {
@@ -332,24 +349,27 @@ function backfillResearchSessions() {
       sessionId = Number(result.lastInsertRowid);
     }
 
-    db.prepare("UPDATE evidence SET research_session_id = ? WHERE industry_id = ?").run(sessionId, industry.id);
-    db.prepare("UPDATE evidence_clusters SET research_session_id = ? WHERE industry_id = ?").run(sessionId, industry.id);
-    db.prepare("UPDATE opportunities SET research_session_id = ? WHERE industry_id = ?").run(sessionId, industry.id);
+    db.prepare("UPDATE evidence SET research_session_id = ? WHERE industry_id = ? AND research_session_id IS NOT ?").run(sessionId, industry.id, sessionId);
+    db.prepare("UPDATE evidence_clusters SET research_session_id = ? WHERE industry_id = ? AND research_session_id IS NOT ?").run(sessionId, industry.id, sessionId);
+    db.prepare("UPDATE opportunities SET research_session_id = ? WHERE industry_id = ? AND research_session_id IS NOT ?").run(sessionId, industry.id, sessionId);
     db.prepare(`
       UPDATE validation_packages SET research_session_id = ?
       WHERE opportunity_id IN (SELECT id FROM opportunities WHERE industry_id = ?)
-    `).run(sessionId, industry.id);
-    db.prepare("UPDATE interviews SET research_session_id = ? WHERE industry_id = ?").run(sessionId, industry.id);
+        AND research_session_id IS NOT ?
+    `).run(sessionId, industry.id, sessionId);
+    db.prepare("UPDATE interviews SET research_session_id = ? WHERE industry_id = ? AND research_session_id IS NOT ?").run(sessionId, industry.id, sessionId);
     db.prepare(`
       UPDATE product_concepts SET research_session_id = ?, industry_id = ?
       WHERE opportunity_id IN (SELECT id FROM opportunities WHERE industry_id = ?)
-    `).run(sessionId, industry.id, industry.id);
+        AND (research_session_id IS NOT ? OR industry_id IS NOT ?)
+    `).run(sessionId, industry.id, industry.id, sessionId, industry.id);
     db.prepare(`
       UPDATE experiments SET research_session_id = ?, industry_id = ?
       WHERE product_concept_id IN (
         SELECT pc.id FROM product_concepts pc JOIN opportunities o ON o.id = pc.opportunity_id WHERE o.industry_id = ?
       )
-    `).run(sessionId, industry.id, industry.id);
+        AND (research_session_id IS NOT ? OR industry_id IS NOT ?)
+    `).run(sessionId, industry.id, industry.id, sessionId, industry.id);
 
     const obsolete = prior.map((session) => session.id).filter((id) => id !== sessionId);
     if (obsolete.length) {

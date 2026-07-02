@@ -87,7 +87,7 @@ export default function IndustryPipeline() {
       <header className="page-header">
         <div>
           <h1>Industry Pipeline</h1>
-          <p className="subtitle">Master queue of industries before research begins.</p>
+          <p className="subtitle">Prioritize which markets deserve research next.</p>
         </div>
         <button className="button" onClick={() => setEditing(null)}>Add Industry</button>
       </header>

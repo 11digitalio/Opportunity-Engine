@@ -108,12 +108,12 @@ export default async function OpportunityDetail({ params }: { params: Promise<{ 
       <PipelineHeader stages={pipelineStages(facts)} />
       <NextActionCard action={nextAction} />
 
-      <section className="card memo-summary">
+      <section className="card memo-summary" id="thesis">
         <div>
-          <span className="eyebrow">Investment thesis</span>
+          <span className="eyebrow">Opportunity thesis</span>
           <h2>{opportunity.problem_statement}</h2>
           <span className="memo-summary-label">Why it looks promising</span>
-          <p>{opportunity.promotion_reason || "This opportunity is supported by recurring customer evidence and is ready for a focused validation decision."}</p>
+          <p>{opportunityThesisReason(opportunity)}</p>
           <div className="memo-summary-customer"><span>Who has this problem</span><strong>{opportunity.user_persona || "Customer profile still needs validation"}</strong></div>
         </div>
         <div className="memo-summary-metrics">
@@ -125,18 +125,12 @@ export default async function OpportunityDetail({ params }: { params: Promise<{ 
       </section>
 
       <nav className="memo-nav" aria-label="Opportunity report sections">
-        <a href="#evidence">Evidence</a><a href="#pain">Pain</a><a href="#validation">Market validation</a>
-        <a href="#score">Score</a><a href="#concepts">Product concepts</a><a href="#plan">Validation plan</a><a href="#experiments">Experiments</a>
+        <a href="#thesis">Opportunity thesis</a><a href="#pain">Pain</a><a href="#validation">Market validation</a>
+        <a href="#interviews">Customer interviews</a><a href="#score">Score</a><a href="#concepts">Product concepts</a><a href="#plan">Validation plan</a><a href="#experiments">Experiments</a>
       </nav>
 
       <div className="memo-layout">
         <article className="memo-content">
-          <CollapsibleMemo id="evidence" number="01" title="Raw evidence" subtitle="The customer signals supporting this opportunity." count={`${evidence.length} record${evidence.length === 1 ? "" : "s"}`}>
-            <RelatedTable title="Supporting evidence" empty="No evidence is linked yet. Add supporting proof before advancing validation." action={{ label: "Add Evidence", href: `/evidence?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Evidence", "Source", "Severity", "Confidence", "Collected"]} rows={evidence.map((item) => [
-              <Link key={item.id} href={`/evidence/${item.id}`}>{item.quote_snippet}</Link>, `${item.source_type} · ${item.source_name}`, `${item.severity}/10`, `${item.confidence}/10`, item.date_collected,
-            ])} />
-          </CollapsibleMemo>
-
           <MemoHeading number="02" title="Pain" subtitle="What breaks today, who feels it, and why current solutions fail." />
           <section className="card memo-section" id="pain">
             <Detail label="Problem" value={opportunity.problem_statement} />
@@ -155,24 +149,32 @@ export default async function OpportunityDetail({ params }: { params: Promise<{ 
               <Detail label="Evidence quality" value={opportunity.average_quality_score ? `${opportunity.average_quality_score}/10 average` : null} />
             </div>
           </section>
-          <RelatedTable title="Customer interviews" empty="No interviews have been conducted yet. Start customer discovery to validate this opportunity." action={{ label: "Start Interviews", href: `/interviews?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Interviewee", "Role", "Date", "Pain", "Would pay"]} rows={interviews.map((item) => [
+          <details className="supporting-evidence" id="evidence">
+            <summary><span>Customer evidence</span><small>{evidence.length} record{evidence.length === 1 ? "" : "s"}</small></summary>
+            <RelatedTable title="Supporting evidence" empty="No evidence is linked yet. Add supporting proof before advancing validation." action={{ label: "Add Evidence", href: `/evidence?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Evidence", "Source", "Severity", "Confidence", "Collected"]} rows={evidence.map((item) => [
+              <Link key={item.id} href={`/evidence/${item.id}`}>{item.quote_snippet}</Link>, `${item.source_type} · ${item.source_name}`, `${item.severity}/10`, `${item.confidence}/10`, item.date_collected,
+            ])} />
+          </details>
+
+          <MemoHeading number="04" title="Customer interviews" subtitle="Direct buyer conversations that confirm the pain and willingness to pay." />
+          <RelatedTable id="interviews" title="Interview findings" empty="No interviews have been conducted yet. Start customer discovery to validate this opportunity." action={{ label: "Start Interviews", href: `/interviews?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Interviewee", "Role", "Date", "Pain", "Would pay"]} rows={interviews.map((item) => [
             item.interviewee_name, [item.role_title, item.company].filter(Boolean).join(" · "), item.date, `${item.pain_severity}/10`, item.would_pay,
           ])} />
 
-          <MemoHeading number="04" title="Opportunity score" subtitle="A structured view of the business potential and execution risk." />
+          <MemoHeading number="05" title="Opportunity score" subtitle="A focused view of business potential and execution risk." />
           <section className="card memo-score-section" id="score">
             <div className="memo-overall-score"><strong>{opportunity.opportunity_score ?? opportunity.total_score}</strong><span>Overall opportunity score</span></div>
             <div className="score-grid">
               <Score label="Pain" value={opportunity.pain_score} />
               <Score label="Frequency" value={opportunity.frequency_score} />
-              <Score label="AI leverage" value={opportunity.ai_leverage_score} />
+              <Score label="Automation potential" value={opportunity.ai_leverage_score} />
               <Score label="Market size" value={opportunity.market_score} />
               <Score label="Competitive gap" value={opportunity.competitive_gap_score} />
               <Score label="Distribution ease" value={opportunity.distribution_difficulty === null ? null : 100 - opportunity.distribution_difficulty} />
             </div>
           </section>
 
-          <CollapsibleMemo id="concepts" number="05" title="Product concepts" subtitle="Possible solutions ranked to make the next choice clear." count={`${concepts.length} concept${concepts.length === 1 ? "" : "s"}`}>
+          <CollapsibleMemo id="concepts" number="06" title="Product concepts" subtitle="Possible solutions ranked to make the next choice clear." count={`${concepts.length} concept${concepts.length === 1 ? "" : "s"}`}>
             <section className="card section-card">
               <div className="section-title title-action"><h2>Concept comparison</h2><Link href={`/product-concepts?opportunityId=${opportunity.id}`}>View all</Link></div>
               {concepts.length ? <div className="table-wrap"><table><thead><tr><th>Decision</th><th>Concept</th><th>Pitch</th><th>Score</th><th>Review</th></tr></thead>
@@ -184,7 +186,7 @@ export default async function OpportunityDetail({ params }: { params: Promise<{ 
             </section>
           </CollapsibleMemo>
 
-          <CollapsibleMemo id="plan" number="06" title="Validation plan" subtitle="The assumptions, interviews, and success criteria required before building." count={validation ? "Plan ready" : "Not created"}>
+          <CollapsibleMemo id="plan" number="07" title="Validation plan" subtitle="The assumptions, interviews, and success criteria required before building." count={validation ? "Plan ready" : "Not created"}>
             <section className="card memo-section">
               {validation ? <>
                 <div className="validation-plan-header"><StatusBadge status={String(validation.review_status || validation.status)} /><Link href={`/validation-packages?opportunityId=${opportunity.id}`}>Edit plan</Link></div>
@@ -208,7 +210,7 @@ export default async function OpportunityDetail({ params }: { params: Promise<{ 
             </section>
           </CollapsibleMemo>
 
-          <CollapsibleMemo id="experiments" number="07" title="Experiments" subtitle="Tests that can confirm or reject the riskiest assumptions." count={`${experiments.length} test${experiments.length === 1 ? "" : "s"}`}>
+          <CollapsibleMemo id="experiments" number="08" title="Experiments" subtitle="Tests that can confirm or reject the riskiest assumptions." count={`${experiments.length} test${experiments.length === 1 ? "" : "s"}`}>
             <RelatedTable title="Active and completed tests" empty="No experiments are running yet. Select a product concept and create a measurable test." action={{ label: "Create Experiment", href: `/experiments?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Hypothesis", "Concept", "Method", "Status"]} rows={experiments.map((item) => [
               item.hypothesis, item.concept_name, item.validation_method, <StatusBadge key={String(item.id)} status={String(item.status)} />,
             ])} />
@@ -230,7 +232,7 @@ export default async function OpportunityDetail({ params }: { params: Promise<{ 
           <details className="card sidebar-details">
             <summary>Supporting context</summary>
             <div>
-              <Detail label="AI opportunity" value={opportunity.ai_opportunity} />
+              <Detail label="Automation opportunity" value={opportunity.ai_opportunity} />
               <Detail label="Moat ideas" value={opportunity.moat_ideas} />
               <Detail label="Research notes" value={opportunity.research_notes} />
               <Detail label="Notes" value={opportunity.notes} />
@@ -246,6 +248,19 @@ export default async function OpportunityDetail({ params }: { params: Promise<{ 
 
 function Detail({ label, value }: { label: string; value: string | null }) {
   return <div className="detail-field"><h3>{label}</h3><p>{value || "—"}</p></div>;
+}
+
+function opportunityThesisReason(opportunity: Opportunity) {
+  if (opportunity.interview_count >= 3 && opportunity.evidence_count >= 3) {
+    return "Customer interviews and independent evidence consistently confirm the same painful workflow.";
+  }
+  if (opportunity.evidence_count >= 5 && (opportunity.average_quality_score ?? 0) >= 7) {
+    return "High-quality customer evidence shows a recurring problem with clear business impact.";
+  }
+  if (opportunity.evidence_count >= 3) {
+    return "Multiple customer signals point to a recurring problem that deserves focused validation.";
+  }
+  return "The available evidence makes this the clearest problem to investigate next.";
 }
 
 function MemoHeading({ number, title, subtitle }: { number: string; title: string; subtitle: string }) {

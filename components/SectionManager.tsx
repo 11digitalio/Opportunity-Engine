@@ -247,18 +247,18 @@ export default function SectionManager({
 
 function sectionSubtitle(slug: string) {
   const subtitles: Record<string, string> = {
-    industries: "Choose and compare the markets worth investigating.",
+    industries: "Choose the markets worth investigating.",
     workflows: "Understand how work gets done and where friction repeats.",
-    products: "Track the software customers use and where it falls short.",
-    evidence: "Capture real customer signals before drawing conclusions.",
-    "evidence-clusters": "Group recurring signals into meaningful problem patterns.",
-    "pain-points": "Turn repeated friction into clear customer problems.",
-    opportunities: "Compare the strongest business problems and decide what to validate.",
-    "product-concepts": "Rank possible solutions and choose which one deserves a test.",
-    "validation-packages": "Prepare the customer discovery plan for each opportunity.",
-    interviews: "Record what customers say, do, and will pay for.",
+    products: "Compare the software customers use and where it falls short.",
+    evidence: "Collect customer signals before drawing conclusions.",
+    "evidence-clusters": "Find recurring patterns across customer evidence.",
+    "pain-points": "Define the customer problems supported by repeated evidence.",
+    opportunities: "Rank the strongest problems worth solving.",
+    "product-concepts": "Explore possible solutions for validated problems.",
+    "validation-packages": "Reduce uncertainty before building.",
+    interviews: "Capture what customers say, do, and will pay for.",
     experiments: "Test the riskiest assumptions with measurable outcomes.",
-    "research-sessions": "Keep each market investigation focused and moving forward.",
+    "research-sessions": "Keep each market investigation focused on the next decision.",
   };
   return subtitles[slug] ?? "Keep the research organized and ready for the next decision.";
 }
