@@ -34,6 +34,7 @@ export default function SectionManager({
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generationMessage, setGenerationMessage] = useState("");
+  const hasFilters = Boolean(search || industryId || minScore || sourceType || minSeverity);
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -100,7 +101,7 @@ export default function SectionManager({
       <header className="page-header">
         <div>
           <h1>{section.title}</h1>
-          <p className="subtitle">Research and manage {section.title.toLowerCase()}.</p>
+          <p className="subtitle">{sectionSubtitle(section.slug)}</p>
         </div>
         <div className="actions">
           {section.slug === "evidence" && <button className="button secondary" onClick={() => setBulkOpen(true)}>Bulk Add Evidence</button>}
@@ -110,7 +111,7 @@ export default function SectionManager({
       </header>
       {generationMessage && <div className="generation-result">{generationMessage}</div>}
 
-      <div className="filters">
+      <div className="filters card">
         <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${section.title.toLowerCase()}…`} />
         {section.slug !== "industries" && (
           <select className="select" value={industryId} onChange={(event) => setIndustryId(event.target.value)}>
@@ -121,7 +122,7 @@ export default function SectionManager({
         {["opportunities", "product-concepts"].includes(section.slug) && (
           <select className="select" value={minScore} onChange={(event) => setMinScore(event.target.value)}>
             <option value="">Any score</option>
-            {[100, 90, 80, 70, 60, 50, 40].map((value) => <option value={value} key={value}>{value}+ score</option>)}
+            {(section.slug === "product-concepts" ? [60, 50, 40] : [90, 80, 70, 60, 50]).map((value) => <option value={value} key={value}>{value}+ score</option>)}
           </select>
         )}
         {section.slug === "evidence" && (
@@ -136,9 +137,11 @@ export default function SectionManager({
             </select>
           </>
         )}
+        <span className="filter-count">{loading ? "Loading…" : `${items.length} result${items.length === 1 ? "" : "s"}`}</span>
+        {hasFilters && <button className="clear-filters" type="button" onClick={() => { setSearch(""); setIndustryId(""); setMinScore(""); setSourceType(""); setMinSeverity(""); }}>Clear filters</button>}
       </div>
 
-      <div className="card table-wrap">
+      <div className={`card table-wrap section-table section-table-${section.slug}`}>
         {loading ? <div className="empty">Loading…</div> : items.length === 0 ? <div className="action-empty">
           <p>{emptyGuidance(section.slug, section.title)}</p>
           {section.slug !== "opportunities" && <button className="button secondary small" onClick={() => setEditing(null)}>Add {section.singular}</button>}
@@ -147,7 +150,8 @@ export default function SectionManager({
           <table>
             <thead>
               <tr>
-                {section.columns.map((column) => <th key={column}>{labelFor(column, section)}</th>)}
+                {section.columns.map((column) => <th key={column}>{section.slug === "opportunities" && column === "evidence_count" ? "Proof" : labelFor(column, section)}</th>)}
+                {section.slug === "product-concepts" && <th>Decision</th>}
                 <th>Actions</th>
               </tr>
             </thead>
@@ -158,21 +162,36 @@ export default function SectionManager({
                     <td key={column} className={index === 0 ? "cell-main" : ""}>
                       {index === 0 && (Number(item.is_sample) === 1 || String(item.industry_name ?? item.name ?? "").startsWith("[Sample]")) && <span className="sample-badge">Sample</span>}
                       {["total_score", "opportunity_score"].includes(column)
-                        ? <span className="score">{item[column]}</span>
+                        ? <ScoreValue value={item[column]} max={column === "total_score" && section.slug === "product-concepts" ? 70 : 100} />
                         : ["status", "opportunity_status", "review_status"].includes(column)
                           ? <StatusBadge status={String(item[column] ?? "")} />
+                        : column === "opportunity_name" && section.slug === "opportunities"
+                          ? <><Link className="section-link row-title" href={`/opportunities/${item.id}`}>{String(item[column])}</Link><small>{String(item.industry_name ?? "")}</small></>
+                        : column === "confidence_score" && section.slug === "opportunities"
+                          ? <span className="confidence-value">{String(item[column])}/10</span>
+                        : column === "evidence_count" && section.slug === "opportunities"
+                          ? <span className="proof-value"><strong>{String(item[column])}</strong> evidence · <strong>{String(item.interview_count ?? 0)}</strong> interviews</span>
+                        : column === "concept_name" && section.slug === "product-concepts"
+                          ? <><span className="row-title">{String(item[column])}</span><small>{String(item.opportunity_name ?? "")}</small></>
+                        : column === "name" && section.slug === "workflows"
+                          ? <><span className="row-title">{String(item[column])}</span><small>{String(item.industry_name ?? "")}</small></>
+                        : column === "pain_description" && section.slug === "workflows"
+                          ? <span className="workflow-summary">{truncate(item[column], 78)}</span>
+                        : column === "who_does_it" && section.slug === "workflows"
+                          ? <span className="workflow-summary">{truncate(item[column], 54)}</span>
                         : column === "cluster_name"
                           ? <Link className="section-link" href={`/evidence-clusters/${item.id}`}>{String(item[column])}</Link>
                         : column === "quote_snippet"
                           ? <Link className="section-link" href={`/evidence/${item.id}`}>{truncate(item[column])}</Link>
                         : column === "website" && item[column]
                           ? <a href={String(item[column])} target="_blank" rel="noreferrer">{String(item[column])}</a>
-                          : truncate(item[column])}
+                        : truncate(item[column], section.slug === "workflows" ? 68 : 100)}
                     </td>
                   ))}
+                  {section.slug === "product-concepts" && <td><DecisionBadge value={conceptDecision(item, items)} /></td>}
                   <td>
-                    <div className="actions">
-                      {section.slug === "opportunities" && <Link className="button secondary small" href={`/opportunities/${item.id}`}>View</Link>}
+                    <div className="actions row-actions">
+                      {section.slug === "opportunities" && <Link className="button secondary small" href={`/opportunities/${item.id}`}>Open</Link>}
                       {section.slug === "evidence" && <Link className="button secondary small" href={`/evidence/${item.id}`}>View</Link>}
                       {section.slug === "evidence-clusters" && <Link className="button secondary small" href={`/evidence-clusters/${item.id}`}>View</Link>}
                       {section.slug === "evidence-clusters" && item.opportunity_id
@@ -224,6 +243,45 @@ export default function SectionManager({
       )}
     </>
   );
+}
+
+function sectionSubtitle(slug: string) {
+  const subtitles: Record<string, string> = {
+    industries: "Choose and compare the markets worth investigating.",
+    workflows: "Understand how work gets done and where friction repeats.",
+    products: "Track the software customers use and where it falls short.",
+    evidence: "Capture real customer signals before drawing conclusions.",
+    "evidence-clusters": "Group recurring signals into meaningful problem patterns.",
+    "pain-points": "Turn repeated friction into clear customer problems.",
+    opportunities: "Compare the strongest business problems and decide what to validate.",
+    "product-concepts": "Rank possible solutions and choose which one deserves a test.",
+    "validation-packages": "Prepare the customer discovery plan for each opportunity.",
+    interviews: "Record what customers say, do, and will pay for.",
+    experiments: "Test the riskiest assumptions with measurable outcomes.",
+    "research-sessions": "Keep each market investigation focused and moving forward.",
+  };
+  return subtitles[slug] ?? "Keep the research organized and ready for the next decision.";
+}
+
+function ScoreValue({ value, max }: { value: ItemValue; max: number }) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return <span className="muted">—</span>;
+  return <span className="score-value"><strong>{numeric}</strong><i><b style={{ width: `${Math.max(0, Math.min(100, numeric / max * 100))}%` }} /></i></span>;
+}
+
+function conceptDecision(item: Item, items: Item[]) {
+  const peers = items
+    .filter((candidate) => String(candidate.opportunity_id) === String(item.opportunity_id))
+    .sort((a, b) => Number(b.total_score ?? 0) - Number(a.total_score ?? 0));
+  const index = peers.findIndex((candidate) => String(candidate.id) === String(item.id));
+  if (index === 0) return "Recommended";
+  if (index === 1) return "Runner-up";
+  return "Needs more validation";
+}
+
+function DecisionBadge({ value }: { value: string }) {
+  const slug = value.toLowerCase().replaceAll(" ", "-");
+  return <span className={`decision-badge decision-${slug}`}>{value}</span>;
 }
 
 function emptyGuidance(slug: string, title: string) {

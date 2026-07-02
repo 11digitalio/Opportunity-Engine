@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import OpportunityActions from "@/components/OpportunityActions";
-import { NextActionCard, PipelineHeader, StatusBadge, WorkflowCard } from "@/components/WorkflowUI";
-import { nextRecommendedAction, opportunityWorkflow, pipelineStages, WorkflowFacts } from "@/lib/workflow";
+import { NextActionCard, PipelineHeader, StatusBadge } from "@/components/WorkflowUI";
+import { nextRecommendedAction, pipelineStages, WorkflowFacts } from "@/lib/workflow";
 
 export const dynamic = "force-dynamic";
 
@@ -108,100 +108,130 @@ export default async function OpportunityDetail({ params }: { params: Promise<{ 
       <PipelineHeader stages={pipelineStages(facts)} />
       <NextActionCard action={nextAction} />
 
-      <nav className="related-links" aria-label="Related opportunity content">
-        <Link href={`/evidence?opportunityId=${opportunity.id}`}><strong>{evidence.length}</strong><span>Linked Evidence</span></Link>
-        <Link href={opportunity.evidence_cluster_id ? `/evidence-clusters/${opportunity.evidence_cluster_id}` : "/evidence-clusters"}><strong>{opportunity.evidence_cluster_id ? 1 : 0}</strong><span>Evidence Clusters</span></Link>
-        <Link href={`/validation-packages?opportunityId=${opportunity.id}`}><strong>{validation ? 1 : 0}</strong><span>Validation Package</span></Link>
-        <Link href={`/interviews?opportunityId=${opportunity.id}`}><strong>{interviews.length}</strong><span>Interviews</span></Link>
-        <Link href={`/product-concepts?opportunityId=${opportunity.id}`}><strong>{concepts.length}</strong><span>Product Concepts</span></Link>
-        <Link href={`/experiments?opportunityId=${opportunity.id}`}><strong>{experiments.length}</strong><span>Experiments</span></Link>
+      <section className="card memo-summary">
+        <div>
+          <span className="eyebrow">Investment thesis</span>
+          <h2>{opportunity.problem_statement}</h2>
+          <p>{opportunity.promotion_reason || "This opportunity is supported by recurring customer evidence and is ready for a focused validation decision."}</p>
+        </div>
+        <div className="memo-summary-metrics">
+          <div><strong>{opportunity.opportunity_score ?? opportunity.total_score}</strong><span>Score /100</span></div>
+          <div><strong>{opportunity.confidence_score}/10</strong><span>Confidence</span></div>
+          <div><strong>{opportunity.evidence_count}</strong><span>Evidence</span></div>
+          <div><strong>{opportunity.interview_count}</strong><span>Interviews</span></div>
+        </div>
+      </section>
+
+      <nav className="memo-nav" aria-label="Opportunity report sections">
+        <a href="#evidence">Evidence</a><a href="#pain">Pain</a><a href="#validation">Market validation</a>
+        <a href="#score">Score</a><a href="#concepts">Product concepts</a><a href="#plan">Validation plan</a><a href="#experiments">Experiments</a>
       </nav>
 
-      <div className="detail-grid">
-        <div className="stack">
-          <WorkflowCard stages={opportunityWorkflow(facts)} />
-          <section className="card detail-body">
-            <div className="detail-field">
-              <h3>Research Session</h3>
-              <p>{opportunity.research_session_id
-                ? <Link href={`/research-sessions/${opportunity.research_session_id}`}>{opportunity.research_session_name || `Session #${opportunity.research_session_id}`}</Link>
-                : "No research session linked"}</p>
-            </div>
-            <div className="detail-field">
-              <h3>Originating Cluster</h3>
-              <p>{opportunity.evidence_cluster_id
-                ? <Link href={`/evidence-clusters/${opportunity.evidence_cluster_id}`}>{opportunity.originating_cluster_name}</Link>
-                : "No originating cluster (legacy record)"}</p>
-            </div>
-            <div className="detail-field"><h3>Status</h3><p><StatusBadge status={opportunity.status} /></p></div>
-            <div className="detail-field"><h3>Review status</h3><p><StatusBadge status={opportunity.review_status} /></p></div>
-            <Detail label="Problem statement" value={opportunity.problem_statement} />
-            <Detail label="Current workflow" value={opportunity.current_workflow ?? opportunity.current_workaround} />
-            <Detail label="Current alternatives" value={opportunity.existing_solutions} />
-            <Detail label="Why existing software fails" value={opportunity.solutions_insufficient} />
-            <Detail label="Ideal customer" value={opportunity.user_persona} />
-            <Detail label="Estimated willingness to pay" value={opportunity.estimated_willingness_to_pay ?? opportunity.estimated_cost} />
-            <Detail label="AI opportunity" value={opportunity.ai_opportunity} />
-            <Detail label="Risks" value={opportunity.risks} />
-            <Detail label="Moat ideas" value={opportunity.moat_ideas} />
-            <Detail label="Open questions" value={opportunity.open_questions} />
-            <Detail label="Reason it was promoted" value={opportunity.promotion_reason} />
-          </section>
-          <RelatedTable title="Linked evidence" empty="No evidence is linked yet. Add supporting proof before advancing validation." action={{ label: "Add Evidence", href: `/evidence?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Evidence", "Source", "Severity", "Confidence", "Collected"]} rows={evidence.map((item) => [
+      <div className="memo-layout">
+        <article className="memo-content">
+          <MemoHeading number="01" title="Evidence" subtitle="The customer signals supporting this opportunity." />
+          <RelatedTable id="evidence" title="Supporting evidence" empty="No evidence is linked yet. Add supporting proof before advancing validation." action={{ label: "Add Evidence", href: `/evidence?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Evidence", "Source", "Severity", "Confidence", "Collected"]} rows={evidence.map((item) => [
             <Link key={item.id} href={`/evidence/${item.id}`}>{item.quote_snippet}</Link>, `${item.source_type} · ${item.source_name}`, `${item.severity}/10`, `${item.confidence}/10`, item.date_collected,
           ])} />
-          <RelatedTable title="Linked interviews" empty="No interviews have been conducted yet. Start customer discovery to validate this opportunity." action={{ label: "Start Interviews", href: `/interviews?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Interviewee", "Role", "Date", "Pain", "Would pay"]} rows={interviews.map((item) => [
+
+          <MemoHeading number="02" title="Pain" subtitle="What breaks today, who feels it, and why current solutions fail." />
+          <section className="card memo-section" id="pain">
+            <Detail label="Problem" value={opportunity.problem_statement} />
+            <div className="memo-two-column">
+              <Detail label="Current workflow" value={opportunity.current_workflow ?? opportunity.current_workaround} />
+              <Detail label="Why existing software fails" value={opportunity.solutions_insufficient} />
+            </div>
+          </section>
+
+          <MemoHeading number="03" title="Market validation" subtitle="What is known about the buyer, alternatives, and willingness to pay." />
+          <section className="card memo-section" id="validation">
+            <div className="memo-two-column">
+              <Detail label="Ideal customer" value={opportunity.user_persona} />
+              <Detail label="Willingness to pay" value={opportunity.estimated_willingness_to_pay ?? opportunity.estimated_cost} />
+              <Detail label="Current alternatives" value={opportunity.existing_solutions} />
+              <Detail label="Evidence quality" value={opportunity.average_quality_score ? `${opportunity.average_quality_score}/10 average` : null} />
+            </div>
+          </section>
+          <RelatedTable title="Customer interviews" empty="No interviews have been conducted yet. Start customer discovery to validate this opportunity." action={{ label: "Start Interviews", href: `/interviews?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Interviewee", "Role", "Date", "Pain", "Would pay"]} rows={interviews.map((item) => [
             item.interviewee_name, [item.role_title, item.company].filter(Boolean).join(" · "), item.date, `${item.pain_severity}/10`, item.would_pay,
           ])} />
-          <RelatedTable title="Product concepts" empty="No product concepts have been generated yet. Validate the opportunity before defining a solution." action={{ label: "Generate Product Concepts", href: `/opportunities/${opportunity.id}` }} headers={["Concept", "Pitch", "Score"]} rows={concepts.map((item) => [
-            item.concept_name, item.one_sentence_pitch, item.total_score,
-          ])} />
-          <RelatedTable title="Experiments" empty="No experiments are running yet. Select a product concept and create a measurable test." action={{ label: "Create Experiment", href: `/experiments?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Hypothesis", "Concept", "Method", "Status"]} rows={experiments.map((item) => [
-            item.hypothesis, item.concept_name, item.validation_method, item.status,
-          ])} />
-          <section className="card detail-body">
-            <div className="section-title inline-title"><h2>Validation Package</h2>{validation && <StatusBadge status={String(validation.status)} />}</div>
-            {validation ? <>
-              <Detail label="Review status" value={String(validation.review_status)} />
-              <Detail label="Interview plan" value={String(validation.interview_plan ?? "")} />
-              <Detail label="Interview questions" value={String(validation.interview_questions ?? "")} />
-              <Detail label="Target interviewees" value={String(validation.target_interviewees ?? "")} />
-              <Detail label="Outreach message" value={String(validation.outreach_message ?? "")} />
-              <Detail label="Landing page draft" value={String(validation.landing_page_draft ?? "")} />
-              <Detail label="Pricing hypotheses" value={String(validation.pricing_hypotheses ?? "")} />
-              <Detail label="Assumptions to test" value={String(validation.assumptions_to_test ?? "")} />
-              <Detail label="MVP scope" value={String(validation.mvp_scope ?? "")} />
-              <Detail label="Success criteria" value={String(validation.success_criteria ?? "")} />
-              <Link className="button secondary" href={`/validation-packages?opportunityId=${opportunity.id}`}>Edit validation package</Link>
-            </> : <div className="action-empty"><p>No validation package exists yet. Generate one to define interviews, assumptions, pricing, and success criteria.</p><Link className="button secondary small" href={`/opportunities/${opportunity.id}`}>Generate Validation Package</Link></div>}
-          </section>
-        </div>
 
-        <aside className="stack sticky-sidebar">
-          <div className="detail-stats">
-            <div className="card detail-stat"><strong>{opportunity.opportunity_score ?? opportunity.total_score}</strong><span>Opportunity Score /100</span></div>
-            <div className="card detail-stat"><strong>{opportunity.confidence_score}/10</strong><span>Confidence Score</span></div>
-            <div className="card detail-stat"><strong>{opportunity.evidence_count}</strong><span>Supporting Evidence</span></div>
-            <div className="card detail-stat"><strong>{opportunity.interview_count}</strong><span>Interviews</span></div>
-            <div className="card detail-stat"><strong>{opportunity.average_quality_score ?? "—"}</strong><span>Avg. Evidence Quality</span></div>
-          </div>
-          <div className="score-grid">
-            <Score label="Pain" value={opportunity.pain_score} />
-            <Score label="Frequency" value={opportunity.frequency_score} />
-            <Score label="AI Leverage" value={opportunity.ai_leverage_score} />
-            <Score label="Market Size" value={opportunity.market_score} />
-            <Score label="Competitive Gap" value={opportunity.competitive_gap_score} />
-            <Score label="Distribution Difficulty" value={opportunity.distribution_difficulty} />
-          </div>
-          <section className="card detail-body metrics-status-panel">
-            <div className="section-title inline-title"><h2>Validation Status</h2></div>
-            <div className="detail-field"><h3>Validation</h3><p><StatusBadge status={validation ? String(validation.review_status || validation.status) : "Draft"} /></p></div>
-            <div className="detail-field"><h3>Experiment</h3><p><StatusBadge status={experiments[0] ? String(experiments[0].status) : "Draft"} /></p></div>
+          <MemoHeading number="04" title="Opportunity score" subtitle="A structured view of the business potential and execution risk." />
+          <section className="card memo-score-section" id="score">
+            <div className="memo-overall-score"><strong>{opportunity.opportunity_score ?? opportunity.total_score}</strong><span>Overall opportunity score</span></div>
+            <div className="score-grid">
+              <Score label="Pain" value={opportunity.pain_score} />
+              <Score label="Frequency" value={opportunity.frequency_score} />
+              <Score label="AI leverage" value={opportunity.ai_leverage_score} />
+              <Score label="Market size" value={opportunity.market_score} />
+              <Score label="Competitive gap" value={opportunity.competitive_gap_score} />
+              <Score label="Distribution ease" value={opportunity.distribution_difficulty === null ? null : 100 - opportunity.distribution_difficulty} />
+            </div>
           </section>
-          <section className="card detail-body">
-            <Detail label="Research notes / AI output" value={opportunity.research_notes} />
-            <Detail label="Notes" value={opportunity.notes} />
+
+          <MemoHeading number="05" title="Product concepts" subtitle="Possible solutions ranked to make the next choice clear." />
+          <section className="card section-card" id="concepts">
+            <div className="section-title title-action"><h2>Concept comparison</h2><Link href={`/product-concepts?opportunityId=${opportunity.id}`}>View all</Link></div>
+            {concepts.length ? <div className="table-wrap"><table><thead><tr><th>Decision</th><th>Concept</th><th>Pitch</th><th>Score</th><th>Review</th></tr></thead>
+              <tbody>{concepts.map((item, index) => <tr key={String(item.id)}>
+                <td><ConceptRank index={index} /></td><td className="cell-main">{item.concept_name}</td><td>{item.one_sentence_pitch || "—"}</td>
+                <td><span className="score">{item.total_score}</span></td><td><StatusBadge status={String(item.review_status)} /></td>
+              </tr>)}</tbody></table></div>
+              : <div className="action-empty"><p>No product concepts have been generated yet. Use the action at the top of this report when the opportunity is ready.</p></div>}
           </section>
+
+          <MemoHeading number="06" title="Validation plan" subtitle="The assumptions, interviews, and success criteria required before building." />
+          <section className="card memo-section" id="plan">
+            {validation ? <>
+              <div className="validation-plan-header"><StatusBadge status={String(validation.review_status || validation.status)} /><Link href={`/validation-packages?opportunityId=${opportunity.id}`}>Edit plan</Link></div>
+              <div className="memo-two-column">
+                <Detail label="Interview plan" value={String(validation.interview_plan ?? "")} />
+                <Detail label="Target interviewees" value={String(validation.target_interviewees ?? "")} />
+                <Detail label="Assumptions to test" value={String(validation.assumptions_to_test ?? "")} />
+                <Detail label="Success criteria" value={String(validation.success_criteria ?? "")} />
+              </div>
+              <details className="secondary-details">
+                <summary>Show outreach, pricing, and MVP details</summary>
+                <div className="memo-two-column details-content">
+                  <Detail label="Interview questions" value={String(validation.interview_questions ?? "")} />
+                  <Detail label="Outreach message" value={String(validation.outreach_message ?? "")} />
+                  <Detail label="Landing page draft" value={String(validation.landing_page_draft ?? "")} />
+                  <Detail label="Pricing hypotheses" value={String(validation.pricing_hypotheses ?? "")} />
+                  <Detail label="MVP scope" value={String(validation.mvp_scope ?? "")} />
+                </div>
+              </details>
+            </> : <div className="action-empty"><p>No validation plan exists yet. Create one to define interviews, assumptions, pricing, and success criteria.</p></div>}
+          </section>
+
+          <MemoHeading number="07" title="Experiments" subtitle="Tests that can confirm or reject the riskiest assumptions." />
+          <RelatedTable id="experiments" title="Active and completed tests" empty="No experiments are running yet. Select a product concept and create a measurable test." action={{ label: "Create Experiment", href: `/experiments?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Hypothesis", "Concept", "Method", "Status"]} rows={experiments.map((item) => [
+            item.hypothesis, item.concept_name, item.validation_method, <StatusBadge key={String(item.id)} status={String(item.status)} />,
+          ])} />
+        </article>
+
+        <aside className="memo-sidebar">
+          <section className="card decision-snapshot">
+            <span className="eyebrow">Decision snapshot</span>
+            <div><span>Stage</span><StatusBadge status={opportunity.status} /></div>
+            <div><span>Review</span><StatusBadge status={opportunity.review_status} /></div>
+            <div><span>Validation plan</span><StatusBadge status={validation ? String(validation.review_status || validation.status) : "Draft"} /></div>
+            <div><span>Latest experiment</span><StatusBadge status={experiments[0] ? String(experiments[0].status) : "Draft"} /></div>
+          </section>
+          <section className="card memo-sidebar-card">
+            <Detail label="Key risks" value={opportunity.risks} />
+            <Detail label="Open questions" value={opportunity.open_questions} />
+          </section>
+          <details className="card sidebar-details">
+            <summary>Supporting context</summary>
+            <div>
+              <Detail label="AI opportunity" value={opportunity.ai_opportunity} />
+              <Detail label="Moat ideas" value={opportunity.moat_ideas} />
+              <Detail label="Research notes" value={opportunity.research_notes} />
+              <Detail label="Notes" value={opportunity.notes} />
+              <Detail label="Research session" value={opportunity.research_session_name} />
+              <Detail label="Originating pattern" value={opportunity.originating_cluster_name} />
+            </div>
+          </details>
         </aside>
       </div>
     </>
@@ -212,10 +242,14 @@ function Detail({ label, value }: { label: string; value: string | null }) {
   return <div className="detail-field"><h3>{label}</h3><p>{value || "—"}</p></div>;
 }
 
-function RelatedTable({ title, empty, action, headers, rows }: { title: string; empty: string; action: { label: string; href: string }; headers: string[]; rows: React.ReactNode[][] }) {
+function MemoHeading({ number, title, subtitle }: { number: string; title: string; subtitle: string }) {
+  return <div className="memo-heading"><span>{number}</span><div><h2>{title}</h2><p>{subtitle}</p></div></div>;
+}
+
+function RelatedTable({ id, title, empty, action, headers, rows }: { id?: string; title: string; empty: string; action: { label: string; href: string }; headers: string[]; rows: React.ReactNode[][] }) {
   return (
-    <section className="card section-card">
-      <div className="section-title"><h2>{title}</h2></div>
+    <section className="card section-card" id={id}>
+      <div className="section-title title-action"><h2>{title}</h2>{rows.length ? <Link href={action.href}>{action.label}</Link> : null}</div>
       {rows.length ? <div className="table-wrap"><table><thead><tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr></thead>
         <tbody>{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td className={cellIndex === 0 ? "cell-main" : ""} key={cellIndex}>{cell || "—"}</td>)}</tr>)}</tbody>
       </table></div> : <div className="action-empty"><p>{empty}</p><Link className="button secondary small" href={action.href}>{action.label}</Link></div>}
@@ -224,5 +258,10 @@ function RelatedTable({ title, empty, action, headers, rows }: { title: string; 
 }
 
 function Score({ label, value }: { label: string; value: number | null }) {
-  return <div className="card score-card"><span>{label}</span><strong>{value ?? "—"}</strong><small>/100</small></div>;
+  return <div className="score-card"><span>{label}</span><strong>{value ?? "—"}</strong><small>/100</small><i><b style={{ width: `${value ?? 0}%` }} /></i></div>;
+}
+
+function ConceptRank({ index }: { index: number }) {
+  const label = index === 0 ? "Recommended" : index === 1 ? "Runner-up" : "Needs more validation";
+  return <span className={`decision-badge decision-${label.toLowerCase().replaceAll(" ", "-")}`}>{label}</span>;
 }

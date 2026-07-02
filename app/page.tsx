@@ -5,43 +5,59 @@ import { nextRecommendedAction, WorkflowFacts } from "@/lib/workflow";
 
 export const dynamic = "force-dynamic";
 
-type CountRow = { count: number };
-type OpportunityRow = { id: number; opportunity_name: string; industry_name: string; opportunity_score: number | null; confidence_score: number; evidence_count: number; interview_count: number; status: string };
+type OpportunityRow = {
+  id: number;
+  industry_id: number;
+  research_session_id: number | null;
+  opportunity_name: string;
+  industry_name: string;
+  opportunity_score: number | null;
+  confidence_score: number;
+  status: string;
+  evidence_count: number;
+  interview_count: number;
+  validation_count: number;
+  concept_count: number;
+  approved_concept_count: number;
+  experiment_count: number;
+  successful_experiment_count: number;
+};
 type EvidenceRow = { id: number; quote_snippet: string; source_type: string; industry_name: string; created_at: string };
-type SessionRow = { id: number; name: string | null; industry_id: number; industry_name: string; created_at: string; evidence_count: number; cluster_count: number; opportunity_count: number; validation_count: number; interview_count: number; concept_count: number; approved_concept_count: number; experiment_count: number; successful_experiment_count: number; leading_opportunity_id: number | null; leading_opportunity_status: string | null };
+type InterviewRow = { id: number; interviewee_name: string; role_title: string | null; industry_name: string; opportunity_name: string | null; created_at: string };
+type SessionRow = {
+  id: number;
+  industry_id: number;
+  evidence_count: number;
+  cluster_count: number;
+  opportunity_count: number;
+  validation_count: number;
+  interview_count: number;
+  concept_count: number;
+  approved_concept_count: number;
+  experiment_count: number;
+  successful_experiment_count: number;
+  leading_opportunity_id: number | null;
+  leading_opportunity_status: string | null;
+};
 
 export default function Dashboard() {
-  const readyForInterviews = scalar(`
-    SELECT COUNT(*) count FROM validation_packages vp
-    JOIN opportunities o ON o.id = vp.opportunity_id JOIN industries i ON i.id = o.industry_id
-    WHERE i.name NOT LIKE '[Sample]%' AND (SELECT COUNT(*) FROM interviews iv WHERE iv.opportunity_id = o.id) < 7
-  `);
-  const validationWaitingReview = scalar(`
-    SELECT COUNT(*) count FROM validation_packages vp JOIN opportunities o ON o.id = vp.opportunity_id
-    JOIN industries i ON i.id = o.industry_id WHERE i.name NOT LIKE '[Sample]%' AND vp.review_status = 'Needs Review'
-  `);
-  const experimentsRunning = scalar(`
-    SELECT COUNT(*) count FROM experiments ex JOIN product_concepts pc ON pc.id = ex.product_concept_id
-    JOIN opportunities o ON o.id = pc.opportunity_id JOIN industries i ON i.id = o.industry_id
-    WHERE i.name NOT LIKE '[Sample]%' AND ex.status = 'Running'
-  `);
-  const pendingReviews = scalar(`
-    SELECT
-      (SELECT COUNT(*) FROM evidence e JOIN industries i ON i.id = e.industry_id WHERE i.name NOT LIKE '[Sample]%' AND e.review_status = 'Needs Review') +
-      (SELECT COUNT(*) FROM evidence_clusters ec JOIN industries i ON i.id = ec.industry_id WHERE i.name NOT LIKE '[Sample]%' AND ec.review_status = 'Needs Review') +
-      (SELECT COUNT(*) FROM opportunities o JOIN industries i ON i.id = o.industry_id WHERE i.name NOT LIKE '[Sample]%' AND o.review_status = 'Needs Review') +
-      (SELECT COUNT(*) FROM product_concepts pc JOIN opportunities o ON o.id = pc.opportunity_id JOIN industries i ON i.id = o.industry_id WHERE i.name NOT LIKE '[Sample]%' AND pc.review_status = 'Needs Review')
-      count
-  `);
-  const highestConfidence = db.prepare(`
-    SELECT o.id, o.opportunity_name, i.name industry_name, o.opportunity_score, o.confidence_score, o.status,
+  const strongest = db.prepare(`
+    SELECT o.id, o.industry_id, o.research_session_id, o.opportunity_name, i.name industry_name,
+      o.opportunity_score, o.confidence_score, o.status,
       (SELECT COUNT(*) FROM evidence_opportunities eo WHERE eo.opportunity_id = o.id) evidence_count,
-      (SELECT COUNT(*) FROM interviews iv WHERE iv.opportunity_id = o.id) interview_count
-    FROM opportunities o JOIN industries i ON i.id = o.industry_id WHERE i.name NOT LIKE '[Sample]%'
-    ORDER BY o.confidence_score DESC, COALESCE(o.opportunity_score, 0) DESC LIMIT 1
+      (SELECT COUNT(*) FROM interviews iv WHERE iv.opportunity_id = o.id) interview_count,
+      (SELECT COUNT(*) FROM validation_packages vp WHERE vp.opportunity_id = o.id) validation_count,
+      (SELECT COUNT(*) FROM product_concepts pc WHERE pc.opportunity_id = o.id) concept_count,
+      (SELECT COUNT(*) FROM product_concepts pc WHERE pc.opportunity_id = o.id AND pc.review_status = 'Approved') approved_concept_count,
+      (SELECT COUNT(*) FROM experiments ex JOIN product_concepts pc ON pc.id = ex.product_concept_id WHERE pc.opportunity_id = o.id) experiment_count,
+      (SELECT COUNT(*) FROM experiments ex JOIN product_concepts pc ON pc.id = ex.product_concept_id
+        WHERE pc.opportunity_id = o.id AND ex.status IN ('Complete', 'Completed', 'Successful')) successful_experiment_count
+    FROM opportunities o JOIN industries i ON i.id = o.industry_id
+    WHERE i.name NOT LIKE '[Sample]%'
+    ORDER BY COALESCE(o.opportunity_score, 0) DESC, o.confidence_score DESC LIMIT 1
   `).get() as OpportunityRow | undefined;
   const newestSession = db.prepare(`
-    SELECT rs.id, rs.name, rs.industry_id, i.name industry_name, rs.created_at,
+    SELECT rs.id, rs.industry_id,
       (SELECT COUNT(*) FROM evidence WHERE research_session_id = rs.id) evidence_count,
       (SELECT COUNT(*) FROM evidence_clusters WHERE research_session_id = rs.id) cluster_count,
       (SELECT COUNT(*) FROM opportunities WHERE research_session_id = rs.id) opportunity_count,
@@ -56,26 +72,17 @@ export default function Dashboard() {
     FROM research_sessions rs JOIN industries i ON i.id = rs.industry_id
     WHERE i.name NOT LIKE '[Sample]%' ORDER BY datetime(rs.updated_at) DESC LIMIT 1
   `).get() as SessionRow | undefined;
-  const mostActiveIndustry = db.prepare(`
-    SELECT i.id, i.name,
-      (SELECT COUNT(*) FROM evidence e WHERE e.industry_id = i.id) +
-      (SELECT COUNT(*) FROM evidence_clusters ec WHERE ec.industry_id = i.id) +
-      (SELECT COUNT(*) FROM opportunities o WHERE o.industry_id = i.id) activity_count
-    FROM industries i WHERE i.name NOT LIKE '[Sample]%' ORDER BY activity_count DESC, i.name LIMIT 1
-  `).get() as { id: number; name: string; activity_count: number } | undefined;
-  const lowConfidence = db.prepare(`
-    SELECT o.id, o.opportunity_name, i.name industry_name, o.opportunity_score, o.confidence_score, o.status,
-      (SELECT COUNT(*) FROM evidence_opportunities eo WHERE eo.opportunity_id = o.id) evidence_count,
-      (SELECT COUNT(*) FROM interviews iv WHERE iv.opportunity_id = o.id) interview_count
-    FROM opportunities o JOIN industries i ON i.id = o.industry_id
-    WHERE o.confidence_score <= 5 AND i.name NOT LIKE '[Sample]%'
-    ORDER BY COALESCE(o.opportunity_score, 0) DESC LIMIT 8
-  `).all() as OpportunityRow[];
   const recentEvidence = db.prepare(`
     SELECT e.id, e.quote_snippet, e.source_type, i.name industry_name, e.created_at
     FROM evidence e JOIN industries i ON i.id = e.industry_id
-    WHERE i.name NOT LIKE '[Sample]%' ORDER BY datetime(e.created_at) DESC LIMIT 8
+    WHERE i.name NOT LIKE '[Sample]%' ORDER BY datetime(e.created_at) DESC LIMIT 5
   `).all() as EvidenceRow[];
+  const recentInterviews = db.prepare(`
+    SELECT iv.id, iv.interviewee_name, iv.role_title, i.name industry_name, o.opportunity_name, iv.created_at
+    FROM interviews iv JOIN industries i ON i.id = iv.industry_id
+    LEFT JOIN opportunities o ON o.id = iv.opportunity_id
+    WHERE i.name NOT LIKE '[Sample]%' ORDER BY datetime(iv.created_at) DESC LIMIT 5
+  `).all() as InterviewRow[];
 
   const facts: WorkflowFacts = newestSession ? {
     sessionId: newestSession.id,
@@ -95,74 +102,88 @@ export default function Dashboard() {
   } : { evidenceCount: 0, clusterCount: 0, opportunityCount: 0, validationCount: 0, interviewCount: 0, conceptCount: 0, experimentCount: 0 };
   const nextAction = newestSession
     ? nextRecommendedAction(facts)
-    : { label: "Start Research Session", description: "Create a project homepage for the next industry to investigate.", href: "/research-sessions?new=1" };
+    : { label: "Start Research Session", description: "Choose an industry and begin collecting real market signals.", href: "/research-sessions?new=1" };
+  const strongestNextAction = strongest ? nextRecommendedAction({
+    sessionId: strongest.research_session_id,
+    industryId: strongest.industry_id,
+    opportunityId: strongest.id,
+    evidenceCount: strongest.evidence_count,
+    clusterCount: 1,
+    opportunityCount: 1,
+    validationCount: strongest.validation_count,
+    interviewCount: strongest.interview_count,
+    conceptCount: strongest.concept_count,
+    approvedConceptCount: strongest.approved_concept_count,
+    experimentCount: strongest.experiment_count,
+    successfulExperimentCount: strongest.successful_experiment_count,
+    opportunityStatus: strongest.status,
+    building: false,
+  }) : null;
 
   return <>
-    <header className="page-header">
-      <div><h1>Today</h1><p className="subtitle">The work that needs attention across the opportunity pipeline.</p></div>
-      <Link className="button" href="/evidence?new=1">Add Evidence</Link>
+    <header className="page-header dashboard-header">
+      <div><span className="eyebrow">Decision center</span><h1>What should you build next?</h1><p className="subtitle">Focus on the next decision, then follow the strongest market signal.</p></div>
+      <Link className="button secondary" href="/evidence?new=1">Add Evidence</Link>
     </header>
-    <NextActionCard action={nextAction} />
 
-    <section className="action-dashboard-grid">
-      <ActionCard label="Ready For Interviews" value={readyForInterviews} detail="Validation packages with interviews remaining" href="/interviews" tone={readyForInterviews ? "attention" : ""} />
-      <ActionCard label="Validation Waiting Review" value={validationWaitingReview} detail="Packages requiring a decision" href="/validation-packages" tone={validationWaitingReview ? "attention" : ""} />
-      <ActionCard label="Experiments Running" value={experimentsRunning} detail="Active tests collecting signal" href="/experiments" tone={experimentsRunning ? "active" : ""} />
-      <ActionCard label="Pending Reviews" value={pendingReviews} detail="Evidence, clusters, opportunities, and concepts" href="/opportunities" tone={pendingReviews ? "attention" : ""} />
+    <section aria-labelledby="next-heading">
+      <h2 className="dashboard-question" id="next-heading">What should I do next?</h2>
+      <NextActionCard action={nextAction} />
     </section>
 
-    <div className="dashboard-grid overview-grid">
-      <SpotlightCard title="Highest Confidence Opportunity" href={highestConfidence ? `/opportunities/${highestConfidence.id}` : "/opportunities"}>
-        {highestConfidence ? <><h3>{highestConfidence.opportunity_name}</h3><p>{highestConfidence.industry_name}</p><div className="spotlight-meta"><strong>{highestConfidence.confidence_score}/10 confidence</strong><StatusBadge status={highestConfidence.status} /></div></> : <EmptyInline text="No opportunities have been qualified yet." />}
-      </SpotlightCard>
-      <SpotlightCard title="Newest Research Session" href={newestSession ? `/research-sessions/${newestSession.id}` : "/research-sessions?new=1"}>
-        {newestSession ? <><h3>{newestSession.name || newestSession.industry_name}</h3><p>{newestSession.industry_name}</p><div className="spotlight-meta"><strong>{formatDate(newestSession.created_at)}</strong><span>{newestSession.evidence_count} evidence</span></div></> : <EmptyInline text="Start the first research session." />}
-      </SpotlightCard>
-      <SpotlightCard title="Most Active Industry" href={mostActiveIndustry ? `/industries/${mostActiveIndustry.id}` : "/industries"}>
-        {mostActiveIndustry ? <><h3>{mostActiveIndustry.name}</h3><p>Most research activity in the workspace</p><div className="spotlight-meta"><strong>{mostActiveIndustry.activity_count} linked records</strong></div></> : <EmptyInline text="Activity will appear after research begins." />}
-      </SpotlightCard>
-    </div>
+    <section aria-labelledby="strongest-heading">
+      <h2 className="dashboard-question" id="strongest-heading">What’s closest to becoming a business?</h2>
+      {strongest ? <Link className="card opportunity-spotlight" href={`/opportunities/${strongest.id}`}>
+        <div className="opportunity-spotlight-main">
+          <span className="eyebrow">Strongest opportunity</span>
+          <h2>{strongest.opportunity_name}</h2>
+          <p>{strongest.industry_name}</p>
+          <div className="opportunity-spotlight-meta">
+            <StatusBadge status={strongest.status} />
+            <span>{strongest.confidence_score}/10 confidence</span>
+            <span>{strongest.evidence_count} evidence</span>
+            <span>{strongest.interview_count} interviews</span>
+          </div>
+        </div>
+        <div className="opportunity-spotlight-score">
+          <strong>{strongest.opportunity_score ?? "—"}</strong><span>Opportunity score</span>
+          <div className="score-track"><i style={{ width: `${strongest.opportunity_score ?? 0}%` }} /></div>
+        </div>
+        <div className="opportunity-spotlight-next">
+          <span className="eyebrow">Next action</span>
+          <strong>{strongestNextAction?.label}</strong>
+          <span>Open opportunity →</span>
+        </div>
+      </Link> : <div className="card action-empty"><p>No opportunity has been qualified yet. Group recurring evidence into a pattern to identify the first candidate.</p><Link className="button secondary small" href="/evidence-clusters">Review Evidence Patterns</Link></div>}
+    </section>
 
-    <div className="dashboard-grid">
-      <TableCard title="Low Confidence Opportunities" action={<Link href="/opportunities">View all</Link>}>
-        {lowConfidence.length ? <table><thead><tr><th>Opportunity</th><th>Score</th><th>Confidence</th><th>Next proof</th></tr></thead><tbody>
-          {lowConfidence.map((item) => <tr key={item.id}><td className="cell-main"><Link href={`/opportunities/${item.id}`}>{item.opportunity_name}</Link></td><td><span className="score">{item.opportunity_score ?? "—"}</span></td><td>{item.confidence_score}/10</td><td>{item.evidence_count} evidence · {item.interview_count}/7 interviews</td></tr>)}
-        </tbody></table> : <EmptyTable text="No low-confidence opportunities need attention." />}
-      </TableCard>
-      <TableCard title="Recently Added Evidence" action={<Link href="/evidence">View all</Link>}>
-        {recentEvidence.length ? <table><thead><tr><th>Evidence</th><th>Industry</th><th>Added</th></tr></thead><tbody>
-          {recentEvidence.map((item) => <tr key={item.id}><td className="cell-main"><Link href={`/evidence/${item.id}`}>{short(item.quote_snippet)}</Link><small>{item.source_type}</small></td><td>{item.industry_name}</td><td>{formatDate(item.created_at)}</td></tr>)}
-        </tbody></table> : <EmptyTable text="No evidence has been added yet." />}
-      </TableCard>
-    </div>
+    <section aria-labelledby="activity-heading">
+      <h2 className="dashboard-question" id="activity-heading">What’s happening?</h2>
+      <div className="dashboard-activity-grid">
+        <ActivityCard title="Recent evidence" href="/evidence">
+          {recentEvidence.length ? recentEvidence.map((item) => <Link className="activity-row" href={`/evidence/${item.id}`} key={item.id}>
+            <span className="activity-type">{item.source_type}</span>
+            <strong>{short(item.quote_snippet)}</strong>
+            <small>{item.industry_name} · {formatDate(item.created_at)}</small>
+          </Link>) : <div className="empty compact">New evidence will appear here.</div>}
+        </ActivityCard>
+        <ActivityCard title="Recent interviews" href="/interviews">
+          {recentInterviews.length ? recentInterviews.map((item) => <div className="activity-row" key={item.id}>
+            <span className="activity-type">Interview</span>
+            <strong>{item.interviewee_name}{item.role_title ? ` · ${item.role_title}` : ""}</strong>
+            <small>{item.opportunity_name || item.industry_name} · {formatDate(item.created_at)}</small>
+          </div>) : <div className="empty compact">Completed interviews will appear here.</div>}
+        </ActivityCard>
+      </div>
+    </section>
   </>;
 }
 
-function scalar(sql: string) {
-  return Number((db.prepare(sql).get() as CountRow).count ?? 0);
+function ActivityCard({ title, href, children }: { title: string; href: string; children: React.ReactNode }) {
+  return <section className="card activity-card"><div className="section-title title-action"><h2>{title}</h2><Link href={href}>View all</Link></div><div>{children}</div></section>;
 }
 
-function ActionCard({ label, value, detail, href, tone }: { label: string; value: number; detail: string; href: string; tone: string }) {
-  return <Link className={`card action-dashboard-card ${tone}`} href={href}><span>{label}</span><strong>{value}</strong><p>{detail}</p><i>Review work →</i></Link>;
-}
-
-function SpotlightCard({ title, href, children }: { title: string; href: string; children: React.ReactNode }) {
-  return <Link className="card spotlight-card" href={href}><span className="eyebrow">{title}</span>{children}<i>Open →</i></Link>;
-}
-
-function TableCard({ title, action, children }: { title: string; action: React.ReactNode; children: React.ReactNode }) {
-  return <section className="card section-card"><div className="section-title title-action"><h2>{title}</h2>{action}</div><div className="table-wrap">{children}</div></section>;
-}
-
-function EmptyInline({ text }: { text: string }) {
-  return <p className="muted">{text}</p>;
-}
-
-function EmptyTable({ text }: { text: string }) {
-  return <div className="empty">{text}</div>;
-}
-
-function short(value: string, length = 72) {
+function short(value: string, length = 78) {
   return value.length > length ? `${value.slice(0, length)}…` : value;
 }
 

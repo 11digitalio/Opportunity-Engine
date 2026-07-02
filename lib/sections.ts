@@ -79,7 +79,7 @@ export const sections: Record<string, SectionConfig> = {
   },
   workflows: {
     slug: "workflows", title: "Workflows", singular: "Workflow", table: "workflows",
-    columns: ["name", "industry_name", "who_does_it", "frequency", "pain_description"],
+    columns: ["name", "who_does_it", "frequency", "pain_description"],
     fields: [
       industry,
       { key: "name", label: "Name", type: "text", required: true },
@@ -163,7 +163,7 @@ export const sections: Record<string, SectionConfig> = {
   },
   opportunities: {
     slug: "opportunities", title: "Opportunities", singular: "Opportunity", table: "opportunities",
-    columns: ["opportunity_name", "industry_name", "status", "opportunity_score", "average_quality_score", "review_status", "evidence_count", "interview_count"],
+    columns: ["opportunity_name", "status", "opportunity_score", "confidence_score", "evidence_count"],
     fields: [
       { key: "evidence_cluster_id", label: "Originating Evidence Cluster", type: "relation", relation: "evidence-clusters", readOnly: true },
       { ...researchSession, readOnly: true, required: false },
@@ -199,7 +199,7 @@ export const sections: Record<string, SectionConfig> = {
   },
   "product-concepts": {
     slug: "product-concepts", title: "Product Concepts", singular: "Product Concept", table: "product_concepts",
-    columns: ["concept_name", "opportunity_name", "industry_name", "target_customer", "one_sentence_pitch", "total_score", "review_status"],
+    columns: ["concept_name", "one_sentence_pitch", "total_score"],
     fields: [
       { key: "opportunity_id", label: "Opportunity", type: "relation", relation: "opportunities", required: true },
       { ...researchSession, readOnly: true, required: false },
