@@ -2,9 +2,15 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 
-const dataDir = path.join(process.cwd(), "data");
-export const databasePath = process.env.OPPORTUNITY_ENGINE_DB_PATH ?? path.join(dataDir, "opportunity-engine.db");
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+const projectDataDir = path.join(process.cwd(), "data");
+const bundledDatabasePath = path.join(projectDataDir, "opportunity-engine.db");
+const runtimeDataDir = process.env.VERCEL ? path.join("/tmp", "opportunity-engine") : projectDataDir;
+export const databasePath = process.env.OPPORTUNITY_ENGINE_DB_PATH ?? path.join(runtimeDataDir, "opportunity-engine.db");
+
+if (!fs.existsSync(runtimeDataDir)) fs.mkdirSync(runtimeDataDir, { recursive: true });
+if (process.env.VERCEL && !fs.existsSync(databasePath) && fs.existsSync(bundledDatabasePath)) {
+  fs.copyFileSync(bundledDatabasePath, databasePath);
+}
 
 export const db = new Database(databasePath, { timeout: 5000 });
 db.pragma("foreign_keys = ON");
