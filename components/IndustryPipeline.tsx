@@ -100,7 +100,7 @@ export default function IndustryPipeline() {
       </div>
 
       <div className="card table-wrap">
-        {loading ? <div className="empty">Loading…</div> : items.length === 0 ? <div className="action-empty"><p>No industries match these filters. Add an industry to the research backlog or clear the filters.</p><button className="button secondary small" onClick={() => setEditing(null)}>Add Industry</button></div> : (
+        {loading ? <PipelineSkeleton /> : items.length === 0 ? <div className="action-empty"><p>No industries match these filters. Add an industry to the research backlog or clear the filters.</p><button className="button secondary small" onClick={() => setEditing(null)}>Add Industry</button></div> : (
           <table className="pipeline-table">
             <thead>
               <tr>
@@ -132,7 +132,7 @@ export default function IndustryPipeline() {
                   <td>{item.research_stage}</td>
                   <td><span className={`priority priority-${item.priority.toLowerCase()}`}>{item.priority}</span></td>
                   <td>{formatDate(item.updated_at)}</td>
-                  <td>{item.notes || <span className="muted">—</span>}</td>
+                  <td><span className="table-preview">{truncate(item.notes, 90)}</span></td>
                   <td>
                     <div className="actions">
                       <button className="button secondary small" disabled={item.status === "Researching" && item.research_stage === "Scoring"} onClick={(event) => startResearch(item, event)}>Start Research</button>
@@ -159,6 +159,19 @@ function Filter({ value, onChange, label, options }: { value: string; onChange: 
       {options.map((option) => <option key={option}>{option}</option>)}
     </select>
   );
+}
+
+function PipelineSkeleton() {
+  return <div className="table-skeleton" role="status" aria-label="Loading industries">
+    {Array.from({ length: 6 }, (_, row) => <div className="skeleton-row" key={row}>
+      {Array.from({ length: 8 }, (_, column) => <span className="skeleton-block" key={column} />)}
+    </div>)}
+  </div>;
+}
+
+function truncate(value: string | null, length: number) {
+  if (!value) return "—";
+  return value.length > length ? `${value.slice(0, length)}…` : value;
 }
 
 function PipelineModal({ item, onClose, onSaved }: { item: PipelineItem | null; onClose: () => void; onSaved: () => void }) {

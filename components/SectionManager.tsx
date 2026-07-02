@@ -92,7 +92,7 @@ export default function SectionManager({
       setGenerationMessage(data.error ?? "Generation failed.");
       return;
     }
-    setGenerationMessage(`${data.scored} clusters scored · ${data.promoted} promoted · ${data.leftAsEvidenceClusters} left as Evidence Clusters`);
+    setGenerationMessage(`${data.scored} patterns scored · ${data.promoted} promoted · ${data.leftAsEvidenceClusters} kept as Evidence Patterns`);
     loadItems();
   }
 
@@ -137,15 +137,15 @@ export default function SectionManager({
             </select>
           </>
         )}
-        <span className="filter-count">{loading ? "Loading…" : `${items.length} result${items.length === 1 ? "" : "s"}`}</span>
+        <span className={`filter-count ${loading ? "filter-count-loading" : ""}`}>{loading ? "Updating results" : `${items.length} result${items.length === 1 ? "" : "s"}`}</span>
         {hasFilters && <button className="clear-filters" type="button" onClick={() => { setSearch(""); setIndustryId(""); setMinScore(""); setSourceType(""); setMinSeverity(""); }}>Clear filters</button>}
       </div>
 
       <div className={`card table-wrap section-table section-table-${section.slug}`}>
-        {loading ? <div className="empty">Loading…</div> : items.length === 0 ? <div className="action-empty">
+        {loading ? <TableSkeleton columns={section.columns.length + (section.slug === "product-concepts" ? 2 : 1)} /> : items.length === 0 ? <div className="action-empty">
           <p>{emptyGuidance(section.slug, section.title)}</p>
           {section.slug !== "opportunities" && <button className="button secondary small" onClick={() => setEditing(null)}>Add {section.singular}</button>}
-          {section.slug === "opportunities" && <Link className="button secondary small" href="/evidence-clusters">Review Evidence Clusters</Link>}
+          {section.slug === "opportunities" && <Link className="button secondary small" href="/evidence-clusters">Review Evidence Patterns</Link>}
         </div> : (
           <table>
             <thead>
@@ -188,7 +188,7 @@ export default function SectionManager({
                         : truncate(item[column], section.slug === "workflows" ? 68 : 100)}
                     </td>
                   ))}
-                  {section.slug === "product-concepts" && <td><DecisionBadge value={conceptDecision(item, items)} /></td>}
+                  {section.slug === "product-concepts" && <td><div className="concept-decision"><DecisionBadge value={conceptDecision(item, items)} /><small>{conceptDecisionReason(item, items)}</small></div></td>}
                   <td>
                     <div className="actions row-actions">
                       {section.slug === "opportunities" && <Link className="button secondary small" href={`/opportunities/${item.id}`}>Open</Link>}
@@ -279,6 +279,19 @@ function conceptDecision(item: Item, items: Item[]) {
   return "Needs more validation";
 }
 
+function conceptDecisionReason(item: Item, items: Item[]) {
+  const peers = items
+    .filter((candidate) => String(candidate.opportunity_id) === String(item.opportunity_id))
+    .sort((a, b) => Number(b.total_score ?? 0) - Number(a.total_score ?? 0));
+  const index = peers.findIndex((candidate) => String(candidate.id) === String(item.id));
+  if (index === 0) return "Highest current score; strongest build candidate.";
+  if (index === 1) {
+    const gap = Math.max(0, Number(peers[0]?.total_score ?? 0) - Number(item.total_score ?? 0));
+    return `${gap}-point gap; best alternative if the leader’s assumption fails.`;
+  }
+  return "Validate demand and differentiation before selecting.";
+}
+
 function DecisionBadge({ value }: { value: string }) {
   const slug = value.toLowerCase().replaceAll(" ", "-");
   return <span className={`decision-badge decision-${slug}`}>{value}</span>;
@@ -287,14 +300,22 @@ function DecisionBadge({ value }: { value: string }) {
 function emptyGuidance(slug: string, title: string) {
   const messages: Record<string, string> = {
     evidence: "No evidence matches these filters. Add customer proof to move research forward.",
-    "evidence-clusters": "No evidence clusters match these filters. Add and group evidence to reveal recurring problems.",
-    opportunities: "No opportunities match these filters. Review qualified evidence clusters and promote the strongest problem.",
-    "validation-packages": "No validation packages match these filters. Open an opportunity to generate a customer discovery plan.",
-    interviews: "No interviews match these filters. Start customer discovery from a validation package.",
+    "evidence-clusters": "No evidence patterns match these filters. Add and group evidence to reveal recurring problems.",
+    opportunities: "No opportunities match these filters. Review qualified evidence patterns and promote the strongest problem.",
+    "validation-packages": "No validation plans match these filters. Open an opportunity to prepare customer discovery.",
+    interviews: "No interviews match these filters. Start customer discovery from a validation plan.",
     "product-concepts": "No product concepts match these filters. Validate an opportunity before defining a solution.",
     experiments: "No experiments match these filters. Select a product concept and launch a measurable test.",
   };
   return messages[slug] ?? `No ${title.toLowerCase()} match these filters. Add the first record to continue.`;
+}
+
+function TableSkeleton({ columns }: { columns: number }) {
+  return <div className="table-skeleton" role="status" aria-label="Loading results">
+    {Array.from({ length: 6 }, (_, row) => <div className="skeleton-row" key={row}>
+      {Array.from({ length: columns }, (_, column) => <span className="skeleton-block" key={column} />)}
+    </div>)}
+  </div>;
 }
 
 function ItemModal({ section, item, creating, relations, initialValues, onClose, onSave, error }: {

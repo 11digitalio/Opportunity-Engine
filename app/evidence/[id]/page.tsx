@@ -67,9 +67,9 @@ export default async function EvidenceDetail({ params }: { params: Promise<{ id:
             <Detail label="Industry" value={evidence.industry_name} />
             <Detail label="Workflow" value={evidence.workflow_name} />
             <Detail label="Collected" value={evidence.date_collected} />
-            <div className="detail-field"><h3>Evidence Cluster</h3><p>{evidence.cluster_id
+            <div className="detail-field"><h3>Evidence Pattern</h3><p>{evidence.cluster_id
               ? <Link href={`/evidence-clusters/${evidence.cluster_id}`}>{evidence.cluster_name}</Link>
-              : "Not clustered"}</p></div>
+              : "Not grouped into a pattern"}</p></div>
           </section>
         </aside>
       </div>

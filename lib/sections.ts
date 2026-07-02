@@ -133,7 +133,7 @@ export const sections: Record<string, SectionConfig> = {
     ],
   },
   "evidence-clusters": {
-    slug: "evidence-clusters", title: "Evidence Clusters", singular: "Evidence Cluster", table: "evidence_clusters",
+    slug: "evidence-clusters", title: "Evidence Patterns", singular: "Evidence Pattern", table: "evidence_clusters",
     columns: ["cluster_name", "industry_name", "evidence_count", "average_quality_score", "average_severity", "opportunity_score", "review_status", "opportunity_status"],
     fields: [
       { key: "cluster_name", label: "Cluster Name", type: "text", required: true },
@@ -165,7 +165,7 @@ export const sections: Record<string, SectionConfig> = {
     slug: "opportunities", title: "Opportunities", singular: "Opportunity", table: "opportunities",
     columns: ["opportunity_name", "status", "opportunity_score", "confidence_score", "evidence_count"],
     fields: [
-      { key: "evidence_cluster_id", label: "Originating Evidence Cluster", type: "relation", relation: "evidence-clusters", readOnly: true },
+      { key: "evidence_cluster_id", label: "Originating Evidence Pattern", type: "relation", relation: "evidence-clusters", readOnly: true },
       { ...researchSession, readOnly: true, required: false },
       { ...industry, readOnly: true },
       { key: "workflow_id", label: "Workflow", type: "relation", relation: "workflows", readOnly: true },
@@ -223,7 +223,7 @@ export const sections: Record<string, SectionConfig> = {
     ],
   },
   "validation-packages": {
-    slug: "validation-packages", title: "Validation Packages", singular: "Validation Package", table: "validation_packages",
+    slug: "validation-packages", title: "Validation Plans", singular: "Validation Plan", table: "validation_packages",
     columns: ["opportunity_name", "industry_name", "status", "review_status", "created_at"],
     fields: [
       { key: "opportunity_id", label: "Opportunity", type: "relation", relation: "opportunities", required: true },

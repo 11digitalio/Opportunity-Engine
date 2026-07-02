@@ -112,7 +112,9 @@ export default async function OpportunityDetail({ params }: { params: Promise<{ 
         <div>
           <span className="eyebrow">Investment thesis</span>
           <h2>{opportunity.problem_statement}</h2>
+          <span className="memo-summary-label">Why it looks promising</span>
           <p>{opportunity.promotion_reason || "This opportunity is supported by recurring customer evidence and is ready for a focused validation decision."}</p>
+          <div className="memo-summary-customer"><span>Who has this problem</span><strong>{opportunity.user_persona || "Customer profile still needs validation"}</strong></div>
         </div>
         <div className="memo-summary-metrics">
           <div><strong>{opportunity.opportunity_score ?? opportunity.total_score}</strong><span>Score /100</span></div>
@@ -129,10 +131,11 @@ export default async function OpportunityDetail({ params }: { params: Promise<{ 
 
       <div className="memo-layout">
         <article className="memo-content">
-          <MemoHeading number="01" title="Evidence" subtitle="The customer signals supporting this opportunity." />
-          <RelatedTable id="evidence" title="Supporting evidence" empty="No evidence is linked yet. Add supporting proof before advancing validation." action={{ label: "Add Evidence", href: `/evidence?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Evidence", "Source", "Severity", "Confidence", "Collected"]} rows={evidence.map((item) => [
-            <Link key={item.id} href={`/evidence/${item.id}`}>{item.quote_snippet}</Link>, `${item.source_type} · ${item.source_name}`, `${item.severity}/10`, `${item.confidence}/10`, item.date_collected,
-          ])} />
+          <CollapsibleMemo id="evidence" number="01" title="Raw evidence" subtitle="The customer signals supporting this opportunity." count={`${evidence.length} record${evidence.length === 1 ? "" : "s"}`}>
+            <RelatedTable title="Supporting evidence" empty="No evidence is linked yet. Add supporting proof before advancing validation." action={{ label: "Add Evidence", href: `/evidence?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Evidence", "Source", "Severity", "Confidence", "Collected"]} rows={evidence.map((item) => [
+              <Link key={item.id} href={`/evidence/${item.id}`}>{item.quote_snippet}</Link>, `${item.source_type} · ${item.source_name}`, `${item.severity}/10`, `${item.confidence}/10`, item.date_collected,
+            ])} />
+          </CollapsibleMemo>
 
           <MemoHeading number="02" title="Pain" subtitle="What breaks today, who feels it, and why current solutions fail." />
           <section className="card memo-section" id="pain">
@@ -169,44 +172,47 @@ export default async function OpportunityDetail({ params }: { params: Promise<{ 
             </div>
           </section>
 
-          <MemoHeading number="05" title="Product concepts" subtitle="Possible solutions ranked to make the next choice clear." />
-          <section className="card section-card" id="concepts">
-            <div className="section-title title-action"><h2>Concept comparison</h2><Link href={`/product-concepts?opportunityId=${opportunity.id}`}>View all</Link></div>
-            {concepts.length ? <div className="table-wrap"><table><thead><tr><th>Decision</th><th>Concept</th><th>Pitch</th><th>Score</th><th>Review</th></tr></thead>
-              <tbody>{concepts.map((item, index) => <tr key={String(item.id)}>
-                <td><ConceptRank index={index} /></td><td className="cell-main">{item.concept_name}</td><td>{item.one_sentence_pitch || "—"}</td>
-                <td><span className="score">{item.total_score}</span></td><td><StatusBadge status={String(item.review_status)} /></td>
-              </tr>)}</tbody></table></div>
-              : <div className="action-empty"><p>No product concepts have been generated yet. Use the action at the top of this report when the opportunity is ready.</p></div>}
-          </section>
+          <CollapsibleMemo id="concepts" number="05" title="Product concepts" subtitle="Possible solutions ranked to make the next choice clear." count={`${concepts.length} concept${concepts.length === 1 ? "" : "s"}`}>
+            <section className="card section-card">
+              <div className="section-title title-action"><h2>Concept comparison</h2><Link href={`/product-concepts?opportunityId=${opportunity.id}`}>View all</Link></div>
+              {concepts.length ? <div className="table-wrap"><table><thead><tr><th>Decision</th><th>Concept</th><th>Pitch</th><th>Score</th><th>Review</th></tr></thead>
+                <tbody>{concepts.map((item, index) => <tr key={String(item.id)}>
+                  <td><div className="concept-decision"><ConceptRank index={index} /><small>{conceptRankReason(index, concepts)}</small></div></td><td className="cell-main">{item.concept_name}</td><td>{item.one_sentence_pitch || "—"}</td>
+                  <td><span className="score">{item.total_score}</span></td><td><StatusBadge status={String(item.review_status)} /></td>
+                </tr>)}</tbody></table></div>
+                : <div className="action-empty"><p>No product concepts have been generated yet. Use the action at the top of this report when the opportunity is ready.</p></div>}
+            </section>
+          </CollapsibleMemo>
 
-          <MemoHeading number="06" title="Validation plan" subtitle="The assumptions, interviews, and success criteria required before building." />
-          <section className="card memo-section" id="plan">
-            {validation ? <>
-              <div className="validation-plan-header"><StatusBadge status={String(validation.review_status || validation.status)} /><Link href={`/validation-packages?opportunityId=${opportunity.id}`}>Edit plan</Link></div>
-              <div className="memo-two-column">
-                <Detail label="Interview plan" value={String(validation.interview_plan ?? "")} />
-                <Detail label="Target interviewees" value={String(validation.target_interviewees ?? "")} />
-                <Detail label="Assumptions to test" value={String(validation.assumptions_to_test ?? "")} />
-                <Detail label="Success criteria" value={String(validation.success_criteria ?? "")} />
-              </div>
-              <details className="secondary-details">
-                <summary>Show outreach, pricing, and MVP details</summary>
-                <div className="memo-two-column details-content">
-                  <Detail label="Interview questions" value={String(validation.interview_questions ?? "")} />
-                  <Detail label="Outreach message" value={String(validation.outreach_message ?? "")} />
-                  <Detail label="Landing page draft" value={String(validation.landing_page_draft ?? "")} />
-                  <Detail label="Pricing hypotheses" value={String(validation.pricing_hypotheses ?? "")} />
-                  <Detail label="MVP scope" value={String(validation.mvp_scope ?? "")} />
+          <CollapsibleMemo id="plan" number="06" title="Validation plan" subtitle="The assumptions, interviews, and success criteria required before building." count={validation ? "Plan ready" : "Not created"}>
+            <section className="card memo-section">
+              {validation ? <>
+                <div className="validation-plan-header"><StatusBadge status={String(validation.review_status || validation.status)} /><Link href={`/validation-packages?opportunityId=${opportunity.id}`}>Edit plan</Link></div>
+                <div className="memo-two-column">
+                  <Detail label="Interview plan" value={String(validation.interview_plan ?? "")} />
+                  <Detail label="Target interviewees" value={String(validation.target_interviewees ?? "")} />
+                  <Detail label="Assumptions to test" value={String(validation.assumptions_to_test ?? "")} />
+                  <Detail label="Success criteria" value={String(validation.success_criteria ?? "")} />
                 </div>
-              </details>
-            </> : <div className="action-empty"><p>No validation plan exists yet. Create one to define interviews, assumptions, pricing, and success criteria.</p></div>}
-          </section>
+                <details className="secondary-details">
+                  <summary>Show outreach, pricing, and MVP details</summary>
+                  <div className="memo-two-column details-content">
+                    <Detail label="Interview questions" value={String(validation.interview_questions ?? "")} />
+                    <Detail label="Outreach message" value={String(validation.outreach_message ?? "")} />
+                    <Detail label="Landing page draft" value={String(validation.landing_page_draft ?? "")} />
+                    <Detail label="Pricing hypotheses" value={String(validation.pricing_hypotheses ?? "")} />
+                    <Detail label="MVP scope" value={String(validation.mvp_scope ?? "")} />
+                  </div>
+                </details>
+              </> : <div className="action-empty"><p>No validation plan exists yet. Create one to define interviews, assumptions, pricing, and success criteria.</p></div>}
+            </section>
+          </CollapsibleMemo>
 
-          <MemoHeading number="07" title="Experiments" subtitle="Tests that can confirm or reject the riskiest assumptions." />
-          <RelatedTable id="experiments" title="Active and completed tests" empty="No experiments are running yet. Select a product concept and create a measurable test." action={{ label: "Create Experiment", href: `/experiments?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Hypothesis", "Concept", "Method", "Status"]} rows={experiments.map((item) => [
-            item.hypothesis, item.concept_name, item.validation_method, <StatusBadge key={String(item.id)} status={String(item.status)} />,
-          ])} />
+          <CollapsibleMemo id="experiments" number="07" title="Experiments" subtitle="Tests that can confirm or reject the riskiest assumptions." count={`${experiments.length} test${experiments.length === 1 ? "" : "s"}`}>
+            <RelatedTable title="Active and completed tests" empty="No experiments are running yet. Select a product concept and create a measurable test." action={{ label: "Create Experiment", href: `/experiments?new=1&opportunityId=${opportunity.id}&sessionId=${opportunity.research_session_id ?? ""}` }} headers={["Hypothesis", "Concept", "Method", "Status"]} rows={experiments.map((item) => [
+              item.hypothesis, item.concept_name, item.validation_method, <StatusBadge key={String(item.id)} status={String(item.status)} />,
+            ])} />
+          </CollapsibleMemo>
         </article>
 
         <aside className="memo-sidebar">
@@ -246,6 +252,13 @@ function MemoHeading({ number, title, subtitle }: { number: string; title: strin
   return <div className="memo-heading"><span>{number}</span><div><h2>{title}</h2><p>{subtitle}</p></div></div>;
 }
 
+function CollapsibleMemo({ id, number, title, subtitle, count, children }: { id: string; number: string; title: string; subtitle: string; count: string; children: React.ReactNode }) {
+  return <details className="memo-collapsible" id={id}>
+    <summary><MemoHeading number={number} title={title} subtitle={subtitle} /><span className="memo-collapsible-meta">{count}</span></summary>
+    <div className="memo-collapsible-content">{children}</div>
+  </details>;
+}
+
 function RelatedTable({ id, title, empty, action, headers, rows }: { id?: string; title: string; empty: string; action: { label: string; href: string }; headers: string[]; rows: React.ReactNode[][] }) {
   return (
     <section className="card section-card" id={id}>
@@ -264,4 +277,13 @@ function Score({ label, value }: { label: string; value: number | null }) {
 function ConceptRank({ index }: { index: number }) {
   const label = index === 0 ? "Recommended" : index === 1 ? "Runner-up" : "Needs more validation";
   return <span className={`decision-badge decision-${label.toLowerCase().replaceAll(" ", "-")}`}>{label}</span>;
+}
+
+function conceptRankReason(index: number, concepts: Record<string, string | number | null>[]) {
+  if (index === 0) return "Highest current score; strongest build candidate.";
+  if (index === 1) {
+    const gap = Math.max(0, Number(concepts[0]?.total_score ?? 0) - Number(concepts[index]?.total_score ?? 0));
+    return `${gap}-point gap; best alternative if the leader’s assumption fails.`;
+  }
+  return "Validate demand and differentiation before selecting.";
 }

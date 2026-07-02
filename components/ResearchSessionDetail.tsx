@@ -109,9 +109,9 @@ export default function ResearchSessionDetail({
 
     <section className="run-metrics session-metrics project-metrics" aria-label="Project health">
       <Metric label="Evidence Count" value={metrics.evidence} href={`/evidence?sessionId=${id}`} />
-      <Metric label="Evidence Clusters" value={metrics.clusters} href={`/evidence-clusters?sessionId=${id}`} />
+      <Metric label="Evidence Patterns" value={metrics.clusters} href={`/evidence-clusters?sessionId=${id}`} />
       <Metric label="Qualified Opportunities" value={qualifiedOpportunityCount} href={`/opportunities?sessionId=${id}`} />
-      <Metric label="Validation Packages" value={metrics.validations} href={`/validation-packages?sessionId=${id}`} />
+      <Metric label="Validation Plans" value={metrics.validations} href={`/validation-packages?sessionId=${id}`} />
       <Metric label="Interviews" value={metrics.interviews} href={`/interviews?sessionId=${id}`} />
       <Metric label="Product Concepts" value={metrics.concepts} href={`/product-concepts?sessionId=${id}`} />
       <Metric label="Experiments" value={metrics.experiments} href={`/experiments?sessionId=${id}`} />
@@ -121,9 +121,9 @@ export default function ResearchSessionDetail({
       <div className="stack">
         <ActivityTimeline activity={activity} />
         <TopOpportunities items={related.opportunities.slice(0, 5)} />
-        <RelatedSection title="Recent Evidence" items={related.evidence.slice(0, 8)} base="/evidence" emptyText="No evidence has been added yet." actionLabel="Add Evidence" actionHref={`/evidence?new=1&sessionId=${id}`} />
-        <RelatedSection title="Evidence Clusters" items={related.clusters} base="/evidence-clusters" emptyText="No clusters have been generated yet. Group evidence to reveal recurring problems." actionLabel="Generate Evidence Clusters" actionHref={`/evidence-clusters?new=1&sessionId=${id}`} />
-        <RelatedSection title="Validation Packages" items={related.validations} base="/validation-packages" emptyText="No validation package exists yet. Promote an opportunity before preparing customer discovery." actionLabel="Review Opportunities" actionHref={`/opportunities?sessionId=${id}`} />
+        <RelatedSection title="Recent Evidence" items={related.evidence.slice(0, 8)} base="/evidence" emptyText="No evidence yet. Add the first customer signal to start building the case." actionLabel="Add Evidence" actionHref={`/evidence?new=1&sessionId=${id}`} />
+        <RelatedSection title="Evidence Patterns" items={related.clusters} base="/evidence-clusters" emptyText="No evidence patterns yet. Group evidence to reveal recurring problems." actionLabel="Create Evidence Pattern" actionHref={`/evidence-clusters?new=1&sessionId=${id}`} />
+        <RelatedSection title="Validation Plans" items={related.validations} base="/validation-packages" emptyText="No validation plan exists yet. Promote an opportunity before preparing customer discovery." actionLabel="Review Opportunities" actionHref={`/opportunities?sessionId=${id}`} />
         <RelatedSection title="Interviews" items={related.interviews} base="/interviews" emptyText="No interviews have been conducted yet. Start customer discovery to validate this project." actionLabel="Start Interviews" actionHref={`/interviews?new=1&sessionId=${id}`} />
         <RelatedSection title="Product Concepts" items={related.concepts} base="/product-concepts" emptyText="No product concepts have been generated yet. Validate an opportunity first." actionLabel="Review Opportunities" actionHref={`/opportunities?sessionId=${id}`} />
         <RelatedSection title="Experiments" items={related.experiments} base="/experiments" emptyText="No experiments are running yet. Select a product concept to create a measurable test." actionLabel="Create Experiment" actionHref={`/experiments?new=1&sessionId=${id}`} />
@@ -178,7 +178,7 @@ function TopOpportunities({ items }: { items: RelatedItem[] }) {
     <div className="section-title"><h2>Top Opportunities</h2></div>
     {items.length ? <div className="table-wrap"><table><thead><tr><th>Opportunity</th><th>Status</th><th>Added</th></tr></thead><tbody>
       {items.map((item) => <tr key={item.id}><td className="cell-main"><Link href={`/opportunities/${item.id}`}>{item.name}</Link></td><td><StatusBadge status={item.detail} /></td><td>{formatTimestamp(item.meta)}</td></tr>)}
-    </tbody></table></div> : <ActionEmpty text="No qualified opportunities yet. Generate opportunities from the strongest evidence clusters." label="Review Evidence Clusters" href="/evidence-clusters" />}
+    </tbody></table></div> : <ActionEmpty text="No qualified opportunities yet. Generate opportunities from the strongest evidence patterns." label="Review Evidence Patterns" href="/evidence-clusters" />}
   </section>;
 }
 

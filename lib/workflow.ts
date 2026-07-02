@@ -49,7 +49,7 @@ export function pipelineStages(facts: WorkflowFacts): WorkflowStage[] {
   return [
     { key: "research", label: "Research", complete: Boolean(facts.sessionId), href: facts.sessionId ? `/research-sessions/${facts.sessionId}` : "/research-sessions" },
     { key: "evidence", label: "Evidence", complete: facts.evidenceCount > 0, href: sectionHref("evidence", facts) },
-    { key: "clustering", label: "Clustering", complete: facts.clusterCount > 0, href: sectionHref("evidence-clusters", facts) },
+    { key: "clustering", label: "Patterns", complete: facts.clusterCount > 0, href: sectionHref("evidence-clusters", facts) },
     { key: "opportunity", label: "Opportunity", complete: facts.opportunityCount > 0, href: facts.opportunityId ? `/opportunities/${facts.opportunityId}` : sectionHref("opportunities", facts) },
     { key: "validation", label: "Validation", complete: facts.validationCount > 0, href: sectionHref("validation-packages", facts) },
     { key: "interviews", label: "Interviews", complete: facts.interviewCount >= 7, href: sectionHref("interviews", facts) },
@@ -75,9 +75,9 @@ export function opportunityWorkflow(facts: WorkflowFacts): WorkflowStage[] {
   return [
     { key: "session", label: "Research Session Created", complete: Boolean(facts.sessionId), href: facts.sessionId ? `/research-sessions/${facts.sessionId}` : "/research-sessions" },
     { key: "evidence", label: "Evidence Added", detail: String(facts.evidenceCount), complete: facts.evidenceCount > 0, href: sectionHref("evidence", facts) },
-    { key: "cluster", label: "Evidence Cluster Created", complete: facts.clusterCount > 0, href: sectionHref("evidence-clusters", facts) },
+    { key: "cluster", label: "Evidence Pattern Created", complete: facts.clusterCount > 0, href: sectionHref("evidence-clusters", facts) },
     { key: "promoted", label: "Opportunity Promoted", complete: Boolean(facts.opportunityId), href: facts.opportunityId ? `/opportunities/${facts.opportunityId}` : "/opportunities" },
-    { key: "validation", label: "Validation Package Generated", complete: facts.validationCount > 0, href: sectionHref("validation-packages", facts) },
+    { key: "validation", label: "Validation Plan Created", complete: facts.validationCount > 0, href: sectionHref("validation-packages", facts) },
     ...interviews,
     { key: "pricing", label: "Pricing Validated", complete: Boolean(facts.pricingValidated), href: sectionHref("interviews", facts) },
     { key: "concept", label: "Product Concept Selected", complete: (facts.approvedConceptCount ?? 0) > 0, href: sectionHref("product-concepts", facts) },
@@ -89,9 +89,9 @@ export function opportunityWorkflow(facts: WorkflowFacts): WorkflowStage[] {
 
 export function nextRecommendedAction(facts: WorkflowFacts): RecommendedAction {
   if (!facts.evidenceCount) return { label: "Add Evidence", description: "Collect the first proof for this research project.", href: sectionHref("evidence", facts, true) };
-  if (!facts.clusterCount) return { label: "Generate Evidence Clusters", description: "Group the evidence into recurring problems.", href: sectionHref("evidence-clusters", facts, true) };
-  if (!facts.opportunityCount) return { label: "Generate Opportunities", description: "Promote the strongest evidence cluster into an opportunity.", href: sectionHref("evidence-clusters", facts) };
-  if (!facts.validationCount) return { label: "Generate Validation Package", description: "Prepare the interview plan and assumptions to test.", href: facts.opportunityId ? `/opportunities/${facts.opportunityId}` : sectionHref("opportunities", facts) };
+  if (!facts.clusterCount) return { label: "Create Evidence Patterns", description: "Group the evidence into recurring problems.", href: sectionHref("evidence-clusters", facts, true) };
+  if (!facts.opportunityCount) return { label: "Generate Opportunities", description: "Promote the strongest evidence pattern into an opportunity.", href: sectionHref("evidence-clusters", facts) };
+  if (!facts.validationCount) return { label: "Create Validation Plan", description: "Prepare the interview plan and assumptions to test.", href: facts.opportunityId ? `/opportunities/${facts.opportunityId}` : sectionHref("opportunities", facts) };
   if (facts.interviewCount < 7) return { label: `Conduct Interview ${facts.interviewCount + 1}`, description: `${7 - facts.interviewCount} customer interviews remain before validation review.`, href: sectionHref("interviews", facts, true) };
   if (!isOpportunityValidated(facts.opportunityStatus)) return { label: "Review Validation", description: "Review the completed interviews and update the opportunity decision.", href: facts.opportunityId ? `/opportunities/${facts.opportunityId}` : sectionHref("opportunities", facts) };
   if (!(facts.approvedConceptCount ?? 0)) return {

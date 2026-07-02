@@ -212,7 +212,7 @@ function createOpportunity(cluster: ClusterInput, scores: ClusterScores, reason:
     Math.max(1, Math.round(scores.marketSizeScore / 10)),
     Math.max(1, Math.round(scores.competitiveGapScore / 10)),
     Math.max(1, Math.round((100 - scores.distributionDifficulty) / 10)),
-    `Generated from Evidence Cluster #${cluster.id}. Review generated assumptions before prototyping.`,
+    `Generated from Evidence Pattern #${cluster.id}. Review generated assumptions before prototyping.`,
   );
   const opportunityId = Number(result.lastInsertRowid);
   db.prepare(`

@@ -17,7 +17,7 @@ export default function OpportunityActions({ opportunityId, isSample }: { opport
     if (!response.ok) return setMessage(data.error ?? "Action failed.");
     setMessage(action === "concepts"
       ? `${data.created} product concepts created and marked Needs Review.`
-      : data.existing ? "This opportunity already has a validation package." : "Validation package created and marked Needs Review.");
+      : data.existing ? "This opportunity already has a validation plan." : "Validation plan created and marked Needs Review.");
     router.refresh();
   }
 

@@ -82,7 +82,7 @@ export default async function EvidenceClusterDetail({ params }: { params: Promis
     <>
       <header className="page-header">
         <div>
-          <p className="subtitle"><Link href="/evidence-clusters">Evidence Clusters</Link> / {cluster.industry_name}</p>
+          <p className="subtitle"><Link href="/evidence-clusters">Evidence Patterns</Link> / {cluster.industry_name}</p>
           <h1>{cluster.cluster_name} {cluster.industry_name.startsWith("[Sample]") && <span className="sample-badge">Sample</span>}</h1>
           <p className="subtitle">{cluster.workflow_name ?? "No primary workflow linked"}</p>
         </div>
@@ -90,7 +90,7 @@ export default async function EvidenceClusterDetail({ params }: { params: Promis
           {cluster.opportunity_id
             ? <Link className="button" href={`/opportunities/${cluster.opportunity_id}`}>View Opportunity</Link>
             : <Link className="button" href="/evidence-clusters">Run Opportunity Generation</Link>}
-          <Link className="button secondary" href="/evidence-clusters">Back to Evidence Clusters</Link>
+          <Link className="button secondary" href="/evidence-clusters">Back to Evidence Patterns</Link>
         </div>
       </header>
 
@@ -103,7 +103,7 @@ export default async function EvidenceClusterDetail({ params }: { params: Promis
 
           <section className="card section-card">
             <div className="section-title"><h2>Linked Evidence ({evidence.length})</h2></div>
-            {evidence.length === 0 ? <div className="action-empty"><p>No evidence is linked yet. Add supporting records before promoting this cluster.</p><Link className="button secondary small" href="/evidence?new=1">Add Evidence</Link></div> : (
+            {evidence.length === 0 ? <div className="action-empty"><p>No evidence is linked yet. Add supporting records before promoting this pattern.</p><Link className="button secondary small" href="/evidence?new=1">Add Evidence</Link></div> : (
               <div className="evidence-records">
                 {evidence.map((item) => (
                   <article className="evidence-record" key={item.id}>

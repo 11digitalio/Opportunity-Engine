@@ -5,35 +5,27 @@ import { usePathname } from "next/navigation";
 
 const groups = [
   {
-    label: "Explore",
+    label: "Core workflow",
+    emphasis: "primary",
     links: [
       ["Dashboard", "/"],
       ["Industries", "/industries"],
-      ["Industry Pipeline", "/industry-pipeline"],
-      ["Research Sessions", "/research-sessions"],
+      ["Opportunities", "/opportunities"],
+      ["Validation", "/validation-packages"],
+      ["Product Concepts", "/product-concepts"],
     ],
   },
   {
-    label: "Research",
+    label: "Research tools",
+    emphasis: "secondary",
     links: [
+      ["Research Sessions", "/research-sessions"],
+      ["Industry Pipeline", "/industry-pipeline"],
       ["Workflows", "/workflows"],
       ["Software Products", "/products"],
       ["Evidence", "/evidence"],
       ["Evidence Patterns", "/evidence-clusters"],
       ["Pain Points", "/pain-points"],
-    ],
-  },
-  {
-    label: "Decide",
-    links: [
-      ["Opportunities", "/opportunities"],
-      ["Product Concepts", "/product-concepts"],
-    ],
-  },
-  {
-    label: "Validate",
-    links: [
-      ["Validation Plans", "/validation-packages"],
       ["Interviews", "/interviews"],
       ["Experiments", "/experiments"],
     ],
@@ -46,7 +38,7 @@ export default function SidebarNav() {
   return (
     <nav className="nav" aria-label="Primary navigation">
       {groups.map((group) => (
-        <div className="nav-group" key={group.label}>
+        <div className={`nav-group nav-${group.emphasis}`} key={group.label}>
           <span className="nav-label">{group.label}</span>
           {group.links.map(([label, href]) => {
             const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);

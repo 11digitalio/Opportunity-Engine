@@ -18,7 +18,7 @@ export async function POST(_: NextRequest, { params }: Context) {
   const existing = db.prepare("SELECT id FROM validation_packages WHERE opportunity_id = ?").get(opportunityId) as { id: number } | undefined;
   if (existing) return NextResponse.json({ id: existing.id, existing: true });
 
-  const sessionId = startResearchLog(Number(opportunity.industry_id), "Validation Package Generation", `Started validation package generation for Opportunity #${opportunityId}.`);
+  const sessionId = startResearchLog(Number(opportunity.industry_id), "Validation Plan Creation", `Started validation plan creation for Opportunity #${opportunityId}.`);
   try {
     const customer = String(opportunity.user_persona || `${opportunity.industry_name} operators`);
     const problem = String(opportunity.problem_statement);
@@ -43,10 +43,10 @@ export async function POST(_: NextRequest, { params }: Context) {
       "At least 10 completed interviews; 7 confirm the problem; 5 quantify meaningful cost; 3 agree to a concrete follow-up; 2 accept the pricing range; and at least 1 signs a paid pilot or equivalent commitment.",
     );
     const id = Number(result.lastInsertRowid);
-    finishResearchLog(sessionId, { log: ["Created a draft validation package.", "The package was marked Needs Review."] });
+    finishResearchLog(sessionId, { log: ["Created a draft validation plan.", "The plan was marked Needs Review."] });
     return NextResponse.json({ id });
   } catch (error) {
     failResearchLog(sessionId, error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Validation package generation failed." }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Validation plan creation failed." }, { status: 500 });
   }
 }

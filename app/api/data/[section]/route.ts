@@ -165,10 +165,10 @@ function syncLinks(sectionKey: string, id: number, multi: Record<string, number[
 function errorMessage(error: unknown, fallback: string) {
   const message = error instanceof Error ? error.message : fallback;
   if (message.includes("UNIQUE constraint failed: evidence_cluster_items.evidence_id")) {
-    return "One or more selected Evidence records already belong to another cluster.";
+    return "One or more selected evidence records already belong to another pattern.";
   }
   if (message.includes("UNIQUE constraint failed: opportunities.evidence_cluster_id")) {
-    return "This Evidence Cluster already has an Opportunity.";
+    return "This Evidence Pattern already has an Opportunity.";
   }
   return message;
 }
@@ -245,13 +245,13 @@ export async function POST(request: NextRequest, { params }: Context) {
     const create = db.transaction(() => {
       if (sectionKey === "opportunities") {
         const clusterId = Number(values.evidence_cluster_id);
-        if (!clusterId) throw new Error("Opportunities must be created from an Evidence Cluster.");
+        if (!clusterId) throw new Error("Opportunities must be created from an Evidence Pattern.");
         const cluster = db.prepare("SELECT industry_id, workflow_id FROM evidence_clusters WHERE id = ?").get(clusterId) as { industry_id: number; workflow_id: number | null } | undefined;
-        if (!cluster) throw new Error("The originating Evidence Cluster was not found.");
+        if (!cluster) throw new Error("The originating Evidence Pattern was not found.");
         values.industry_id = cluster.industry_id;
         values.workflow_id = cluster.workflow_id;
         values.research_session_id = (db.prepare("SELECT research_session_id FROM evidence_clusters WHERE id = ?").get(clusterId) as { research_session_id: number | null }).research_session_id;
-        if (!values.research_session_id) throw new Error("The originating Evidence Cluster must belong to a Research Session.");
+        if (!values.research_session_id) throw new Error("The originating Evidence Pattern must belong to a Research Session.");
         multi.evidence_ids = (db.prepare("SELECT evidence_id FROM evidence_cluster_items WHERE cluster_id = ?").all(clusterId) as { evidence_id: number }[])
           .map((item) => item.evidence_id);
       }

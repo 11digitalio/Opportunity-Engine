@@ -21,6 +21,8 @@ type OpportunityRow = {
   approved_concept_count: number;
   experiment_count: number;
   successful_experiment_count: number;
+  problem_statement: string;
+  promotion_reason: string | null;
 };
 type EvidenceRow = { id: number; quote_snippet: string; source_type: string; industry_name: string; created_at: string };
 type InterviewRow = { id: number; interviewee_name: string; role_title: string | null; industry_name: string; opportunity_name: string | null; created_at: string };
@@ -42,7 +44,7 @@ type SessionRow = {
 
 export default function Dashboard() {
   const strongest = db.prepare(`
-    SELECT o.id, o.industry_id, o.research_session_id, o.opportunity_name, i.name industry_name,
+    SELECT o.id, o.industry_id, o.research_session_id, o.opportunity_name, o.problem_statement, o.promotion_reason, i.name industry_name,
       o.opportunity_score, o.confidence_score, o.status,
       (SELECT COUNT(*) FROM evidence_opportunities eo WHERE eo.opportunity_id = o.id) evidence_count,
       (SELECT COUNT(*) FROM interviews iv WHERE iv.opportunity_id = o.id) interview_count,
@@ -138,6 +140,7 @@ export default function Dashboard() {
           <span className="eyebrow">Strongest opportunity</span>
           <h2>{strongest.opportunity_name}</h2>
           <p>{strongest.industry_name}</p>
+          <p className="opportunity-spotlight-reason"><strong>Why it leads:</strong> {short(strongest.promotion_reason || strongest.problem_statement, 150)}</p>
           <div className="opportunity-spotlight-meta">
             <StatusBadge status={strongest.status} />
             <span>{strongest.confidence_score}/10 confidence</span>
@@ -165,14 +168,14 @@ export default function Dashboard() {
             <span className="activity-type">{item.source_type}</span>
             <strong>{short(item.quote_snippet)}</strong>
             <small>{item.industry_name} · {formatDate(item.created_at)}</small>
-          </Link>) : <div className="empty compact">New evidence will appear here.</div>}
+          </Link>) : <div className="empty compact">No evidence yet. Add a customer signal to start building the case.</div>}
         </ActivityCard>
         <ActivityCard title="Recent interviews" href="/interviews">
           {recentInterviews.length ? recentInterviews.map((item) => <div className="activity-row" key={item.id}>
             <span className="activity-type">Interview</span>
             <strong>{item.interviewee_name}{item.role_title ? ` · ${item.role_title}` : ""}</strong>
             <small>{item.opportunity_name || item.industry_name} · {formatDate(item.created_at)}</small>
-          </div>) : <div className="empty compact">Completed interviews will appear here.</div>}
+          </div>) : <div className="empty compact">No interviews yet. Conduct the first interview to begin validating the leading opportunity.</div>}
         </ActivityCard>
       </div>
     </section>
