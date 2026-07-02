@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "db:reset": "node --import tsx scripts/reset-db.ts"
+    "db:reset": "node --import tsx scripts/reset-db.ts",
+    "db:snapshot": "node --import tsx scripts/snapshot-db.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",

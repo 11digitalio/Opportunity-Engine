@@ -13,7 +13,20 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The database is created automatically at `data/opportunity-engine.db`. Existing records from the original Ideas model are migrated into Opportunities and Product Concepts.
+The writable database is created automatically at `data/opportunity-engine.db`. A fresh checkout imports the committed `data/seed/opportunity-engine.db` snapshot, so local and deployed builds start from the same dataset. Existing records from the original Ideas model are migrated into Opportunities and Product Concepts.
+
+## Keep deployment data in sync
+
+After changing local records, update and commit the deployment seed:
+
+```bash
+npm run db:snapshot
+git add data/seed/opportunity-engine.db
+```
+
+Vercel loads this committed seed into its writable temporary directory. It never depends on browser storage or an uncommitted local database. Because Vercel's filesystem is temporary, changes made in the deployed app return to the committed snapshot after a cold start or redeployment.
+
+The **Data Source / Build Info** panel is visible during development. Set `SHOW_DATA_DEBUG=1` in a production environment to display it there; the panel reports the environment, build commit, seed revision, loaded source, and real/sample record counts.
 
 ## Research workflow
 

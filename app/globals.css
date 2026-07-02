@@ -181,6 +181,30 @@ tbody tr:hover { background: #fafbfc; }
 .workflow-metric small { color: var(--muted); font-size: 10px; line-height: 1.35; }
 .funnel-heading { margin-bottom: 12px; }
 .sample-badge { display: inline-block; margin-right: 7px; padding: 3px 7px; color: #744210; background: #fef3c7; border-radius: 999px; font-size: 10px; font-weight: 750; vertical-align: middle; }
+
+.data-source-panel {
+  position: fixed;
+  z-index: 20;
+  right: 18px;
+  bottom: 18px;
+  width: min(360px, calc(100vw - 36px));
+  padding: 11px 13px;
+  color: #334155;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.13);
+  font-size: 12px;
+}
+.data-source-panel summary { cursor: pointer; color: #0f172a; font-weight: 750; }
+.data-source-panel dl { margin: 10px 0; }
+.data-source-panel dl div { display: grid; grid-template-columns: 92px 1fr; gap: 8px; margin: 4px 0; }
+.data-source-panel dt { color: #64748b; }
+.data-source-panel dd { margin: 0; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.data-source-counts { display: flex; flex-wrap: wrap; gap: 6px; }
+.data-source-counts span { padding: 4px 6px; background: #f1f5f9; border-radius: 5px; }
+.data-source-counts small { color: #92400e; }
+.data-source-panel p { margin: 9px 0 0; color: #64748b; }
 .action-note { margin: 7px 0 0; color: var(--muted); font-size: 12px; white-space: normal; }
 .inline-title { display: flex; align-items: center; justify-content: space-between; margin: -20px -20px 0; }
 .empty.compact { padding: 16px 0; text-align: left; }

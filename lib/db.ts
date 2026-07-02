@@ -1,15 +1,26 @@
 import Database from "better-sqlite3";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
 const projectDataDir = path.join(process.cwd(), "data");
-const bundledDatabasePath = path.join(projectDataDir, "opportunity-engine.db");
+const seedDatabasePath = path.join(projectDataDir, "seed", "opportunity-engine.db");
 const runtimeDataDir = process.env.VERCEL ? path.join("/tmp", "opportunity-engine") : projectDataDir;
 export const databasePath = process.env.OPPORTUNITY_ENGINE_DB_PATH ?? path.join(runtimeDataDir, "opportunity-engine.db");
 
 if (!fs.existsSync(runtimeDataDir)) fs.mkdirSync(runtimeDataDir, { recursive: true });
-if (process.env.VERCEL && !fs.existsSync(databasePath) && fs.existsSync(bundledDatabasePath)) {
-  fs.copyFileSync(bundledDatabasePath, databasePath);
+const databaseExistedAtStartup = fs.existsSync(databasePath);
+const shouldLoadSeed = process.env.OPPORTUNITY_ENGINE_SKIP_SEED_SNAPSHOT !== "1";
+let loadedDataSource = databaseExistedAtStartup
+  ? process.env.OPPORTUNITY_ENGINE_DB_PATH
+    ? "Configured SQLite database"
+    : "Local SQLite database"
+  : "Generated sample seed";
+
+if (!databaseExistedAtStartup && shouldLoadSeed && fs.existsSync(seedDatabasePath)) {
+  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+  fs.copyFileSync(seedDatabasePath, databasePath);
+  loadedDataSource = "Committed seed snapshot";
 }
 
 export const db = new Database(databasePath, { timeout: 5000 });
@@ -483,3 +494,30 @@ export function seedDatabase() {
 }
 
 initializeDatabase();
+
+const countedTables = ["industries", "workflows", "products", "evidence", "evidence_clusters", "opportunities", "product_concepts"] as const;
+
+export function getDataSourceInfo() {
+  const counts = Object.fromEntries(countedTables.map((table) => {
+    const total = (db.prepare(`SELECT COUNT(*) count FROM ${table}`).get() as { count: number }).count;
+    const hasIndustryId = columns(table).has("industry_id");
+    const sample = table === "industries"
+      ? (db.prepare("SELECT COUNT(*) count FROM industries WHERE name LIKE '[Sample]%'").get() as { count: number }).count
+      : hasIndustryId
+        ? (db.prepare(`SELECT COUNT(*) count FROM ${table} WHERE industry_id IN (SELECT id FROM industries WHERE name LIKE '[Sample]%')`).get() as { count: number }).count
+        : 0;
+    return [table, { real: total - sample, sample, total }];
+  }));
+
+  const seedCommit = fs.existsSync(seedDatabasePath)
+    ? crypto.createHash("sha256").update(fs.readFileSync(seedDatabasePath)).digest("hex").slice(0, 12)
+    : "unavailable";
+
+  return {
+    environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown",
+    buildCommit: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "unavailable",
+    seedRevision: seedCommit,
+    source: loadedDataSource,
+    counts,
+  };
+}

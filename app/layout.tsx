@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import DataSourcePanel from "@/components/DataSourcePanel";
 import SidebarNav from "@/components/SidebarNav";
 import "./globals.css";
 
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <SidebarNav />
           </aside>
           <main className="main">{children}</main>
+          <DataSourcePanel />
         </div>
       </body>
     </html>

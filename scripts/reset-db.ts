@@ -9,6 +9,7 @@ async function reset() {
     if (fs.existsSync(target)) fs.rmSync(target);
   }
 
+  process.env.OPPORTUNITY_ENGINE_SKIP_SEED_SNAPSHOT = "1";
   await import("../lib/db");
   console.log("Database reset and example data restored.");
 }
