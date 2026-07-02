@@ -141,12 +141,12 @@ export default function SectionManager({
         {hasFilters && <button className="clear-filters" type="button" onClick={() => { setSearch(""); setIndustryId(""); setMinScore(""); setSourceType(""); setMinSeverity(""); }}>Clear filters</button>}
       </div>
 
-      <div className={`card table-wrap section-table section-table-${section.slug}`}>
+      <div className={`${section.slug === "opportunities" ? "opportunity-list-shell" : "card table-wrap"} section-table section-table-${section.slug}`}>
         {loading ? <TableSkeleton columns={section.columns.length + (section.slug === "product-concepts" ? 2 : 1)} /> : items.length === 0 ? <div className="action-empty">
           <p>{emptyGuidance(section.slug, section.title)}</p>
           {section.slug !== "opportunities" && <button className="button secondary small" onClick={() => setEditing(null)}>Add {section.singular}</button>}
           {section.slug === "opportunities" && <Link className="button secondary small" href="/evidence-clusters">Review Evidence Patterns</Link>}
-        </div> : (
+        </div> : section.slug === "opportunities" ? <OpportunityCards items={items} onEdit={setEditing} onRemove={remove} /> : (
           <table>
             <thead>
               <tr>
@@ -243,6 +243,37 @@ export default function SectionManager({
       )}
     </>
   );
+}
+
+function OpportunityCards({ items, onEdit, onRemove }: { items: Item[]; onEdit: (item: Item) => void; onRemove: (item: Item) => void }) {
+  return <div className="opportunity-list">
+    {items.map((item, index) => <article className="card opportunity-card" key={String(item.id)}>
+      <div className="opportunity-card-rank"><span>#{index + 1}</span><small>Priority</small></div>
+      <div className="opportunity-card-main">
+        <div className="opportunity-card-labels">
+          <span>{String(item.industry_name ?? "")}</span>
+          <StatusBadge status={String(item.status ?? "")} />
+        </div>
+        <Link className="opportunity-card-title" href={`/opportunities/${item.id}`}>{String(item.opportunity_name)}</Link>
+        <div className="opportunity-card-questions">
+          <div><span>What is the problem?</span><p>{truncate(item.problem_statement, 190)}</p></div>
+          <div><span>Why does it matter?</span><p>{truncate(item.promotion_reason || item.solutions_insufficient || "The evidence indicates a repeated problem worth focused validation.", 190)}</p></div>
+        </div>
+        <div className="opportunity-card-proof"><strong>{String(item.evidence_count ?? 0)}</strong> evidence records <span>·</span> <strong>{String(item.interview_count ?? 0)}</strong> interviews</div>
+      </div>
+      <div className="opportunity-card-decision">
+        <span>How strong is it?</span>
+        <strong>{String(item.opportunity_score ?? "—")}</strong>
+        <div className="score-track"><i style={{ width: `${Number(item.opportunity_score ?? 0)}%` }} /></div>
+        <small>{String(item.confidence_score ?? "—")}/10 confidence</small>
+        <Link className="button small" href={`/opportunities/${item.id}`}>Investigate further</Link>
+        <div className="opportunity-card-admin">
+          <button type="button" onClick={() => onEdit(item)}>Edit</button>
+          <button type="button" onClick={() => onRemove(item)}>Delete</button>
+        </div>
+      </div>
+    </article>)}
+  </div>;
 }
 
 function sectionSubtitle(slug: string) {
