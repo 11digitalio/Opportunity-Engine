@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import DataSourcePanel from "@/components/DataSourcePanel";
 import SidebarNav from "@/components/SidebarNav";
+import WelcomeOnboarding from "@/components/WelcomeOnboarding";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Opportunity Engine",
-  description: "Local-first vertical SaaS research workspace",
+  description: "Discover startup opportunities from real customer pain.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <main className="main">{children}</main>
           <DataSourcePanel />
         </div>
+        <WelcomeOnboarding />
       </body>
     </html>
   );

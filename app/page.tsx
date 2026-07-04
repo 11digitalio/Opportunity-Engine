@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { NextActionCard, StatusBadge } from "@/components/WorkflowUI";
-import { nextRecommendedAction, WorkflowFacts } from "@/lib/workflow";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +24,6 @@ type OpportunityRow = {
   recommended_concept: string | null;
 };
 
-type IndustryRow = {
-  id: number;
-  name: string;
-  description: string | null;
-  opportunity_count: number;
-};
-
 const opportunitySelect = `
   SELECT o.id, o.industry_id, o.research_session_id, o.opportunity_name, o.problem_statement, o.promotion_reason,
     i.name industry_name, o.opportunity_score, o.confidence_score, o.status,
@@ -53,87 +44,56 @@ const opportunitySelect = `
 export default function Dashboard() {
   const opportunities = db.prepare(`${opportunitySelect} LIMIT 3`).all() as OpportunityRow[];
   const strongest = opportunities[0];
-  const industry = db.prepare(`
-    SELECT i.id, i.name, i.description,
-      (SELECT COUNT(*) FROM opportunities o WHERE o.industry_id = i.id) opportunity_count
-    FROM industries i
-    LEFT JOIN research_sessions rs ON rs.industry_id = i.id
-    WHERE i.name NOT LIKE '[Sample]%'
-    GROUP BY i.id
-    ORDER BY MAX(datetime(COALESCE(rs.updated_at, i.updated_at))) DESC LIMIT 1
-  `).get() as IndustryRow | undefined;
-
-  const facts: WorkflowFacts | null = strongest ? {
-    sessionId: strongest.research_session_id,
-    industryId: strongest.industry_id,
-    opportunityId: strongest.id,
-    evidenceCount: strongest.evidence_count,
-    clusterCount: 1,
-    opportunityCount: 1,
-    validationCount: strongest.validation_count,
-    interviewCount: strongest.interview_count,
-    conceptCount: strongest.concept_count,
-    approvedConceptCount: strongest.approved_concept_count,
-    experimentCount: strongest.experiment_count,
-    successfulExperimentCount: strongest.successful_experiment_count,
-    opportunityStatus: strongest.status,
-    building: false,
-  } : null;
-  const nextAction = facts
-    ? nextRecommendedAction(facts)
-    : { label: "Choose an industry", description: "Start with one market where you can reach buyers and verify painful work.", href: "/industries" };
 
   return <>
-    <header className="page-header dashboard-header">
+    <header className="page-header dashboard-header showcase-header dashboard-command-header">
       <div>
-        <span className="eyebrow">Decision center</span>
-        <h1>What should you build next?</h1>
-        <p className="subtitle">The clearest opportunities, the recommended product, and the next decision.</p>
+        <span className="eyebrow">Opportunity Engine / Executive Brief</span>
+        <h1>Three high-confidence software opportunities found.</h1>
+        <p className="subtitle">Customer signals point to one immediate priority: eliminate the manual work and uncertainty surrounding insurance verification.</p>
       </div>
-      <Link className="button secondary" href="/opportunities">View all opportunities</Link>
     </header>
 
-    <section className="dashboard-decision-grid" aria-label="Current decision">
-      <div>
-        <h2 className="dashboard-question">Which industry are you evaluating?</h2>
-        {industry ? <Link className="card industry-focus" href={`/industries/${industry.id}`}>
-          <span className="eyebrow">Industry being researched</span>
-          <h2>{industry.name}</h2>
-          <p>{industry.description || "Research is focused on identifying painful, repeated work worth solving."}</p>
-          <small>{industry.opportunity_count} {industry.opportunity_count === 1 ? "opportunity" : "opportunities"} identified <b>Open industry →</b></small>
-        </Link> : <div className="card action-empty"><p>No active industry yet.</p><Link className="button secondary small" href="/industries">Choose an industry</Link></div>}
+    {strongest ? <section className="dashboard-primary-decision" aria-labelledby="primary-opportunity">
+      <div className="dashboard-primary-copy">
+        <span className="eyebrow">Highest-ranked opportunity</span>
+        <h2 id="primary-opportunity">{strongest.opportunity_name}</h2>
+        <p>{strongest.problem_statement}</p>
+        <div className="dashboard-primary-proof">
+          <span><strong>{strongest.opportunity_score ?? "—"}/100</strong> opportunity score</span>
+          <span><strong>{strongest.confidence_score}/10</strong> confidence</span>
+          <span><strong>{strongest.evidence_count}</strong> supporting signals</span>
+        </div>
       </div>
-      <div>
-        <h2 className="dashboard-question">What should you do next?</h2>
-        <NextActionCard action={nextAction} />
+      <div className="dashboard-primary-action">
+        <span>Recommended next move</span>
+        <p>See the customer evidence, market gap, and product direction behind the top-ranked finding.</p>
+        <Link className="button dashboard-investigate" href={`/opportunities/${strongest.id}`}>Investigate Insurance Verification Burden <span>→</span></Link>
       </div>
-    </section>
+    </section> : null}
 
-    <section aria-labelledby="top-opportunities">
+    <section className="dashboard-secondary-opportunities" aria-labelledby="top-opportunities">
       <div className="dashboard-section-heading">
-        <div><h2 id="top-opportunities">Which opportunities deserve attention?</h2><p>Ranked by strength of the problem and confidence in the evidence.</p></div>
+        <div><span className="eyebrow">What else the research uncovered</span><h2 id="top-opportunities">Other opportunities</h2></div>
         <Link href="/opportunities">Compare all</Link>
       </div>
-      {opportunities.length ? <div className="dashboard-opportunity-list">
-        {opportunities.map((opportunity, index) => <Link className="card dashboard-opportunity" href={`/opportunities/${opportunity.id}`} key={opportunity.id}>
-          <span className="opportunity-rank">#{index + 1}</span>
+      {opportunities.length > 1 ? <div className="dashboard-opportunity-list">
+        {opportunities.slice(1).map((opportunity, index) => <Link className="card dashboard-opportunity" href={`/opportunities/${opportunity.id}`} key={opportunity.id}>
+          <span className="opportunity-rank">#{index + 2}</span>
           <div className="dashboard-opportunity-copy">
-            <div className="opportunity-card-labels"><span>{opportunity.industry_name}</span><StatusBadge status={opportunity.status} /></div>
             <h3>{opportunity.opportunity_name}</h3>
             <p>{opportunity.problem_statement}</p>
-            <small>{opportunity.recommended_concept ? <>Recommended product: <strong>{opportunity.recommended_concept}</strong></> : "Product recommendation still needs validation."}</small>
           </div>
           <div className="dashboard-opportunity-strength">
-            <strong>{opportunity.opportunity_score ?? "—"}</strong><span>Strength</span>
-            <small>{opportunity.confidence_score}/10 confidence</small>
+            <strong>{opportunity.opportunity_score ?? "—"}/100</strong><span>Opportunity score</span>
           </div>
-          <span className="opportunity-open">Review →</span>
+          <span className="opportunity-open">Investigate →</span>
         </Link>)}
       </div> : <div className="card action-empty"><p>No opportunity has been qualified yet. Review recurring evidence patterns to identify the strongest problem.</p><Link className="button secondary small" href="/evidence-clusters">Review evidence patterns</Link></div>}
     </section>
 
     <details className="dashboard-research-links">
-      <summary>Open research workspace</summary>
+      <summary>Review supporting research</summary>
       <div>
         <Link href="/research-sessions">Research sessions</Link>
         <Link href="/evidence-clusters">Evidence patterns</Link>
