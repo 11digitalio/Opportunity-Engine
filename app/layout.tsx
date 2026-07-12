@@ -15,8 +15,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <div className="shell">
           <aside className="sidebar">
-            <div className="brand"><span>OE</span><div>Opportunity Engine<small>From signal to decision</small></div></div>
+            <div className="brand"><span>OE</span><div>Opportunity Engine<small>Evidence-first research system</small></div></div>
             <SidebarNav />
+            <div className="sidebar-flow" aria-label="Opportunity workflow">
+              <span>Evidence</span><i>→</i><span>Pattern</span><i>→</i><strong>Opportunity</strong>
+            </div>
           </aside>
           <main className="main">{children}</main>
           <DataSourcePanel />
